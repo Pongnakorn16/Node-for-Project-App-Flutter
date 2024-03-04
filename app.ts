@@ -8,12 +8,11 @@ import cors from "cors";
 export const app = express();
 
 app.use(
-    cors({
-      origin: "*",
-      // http://localhost:4200
-      // *
-    })
-  );
+  cors({
+    origin: ["http://localhost:4200", "https://dok-test.web.app/"],
+  })
+);
+
 
 app.use(bodyParser.text());
 app.use(bodyParser.json());
