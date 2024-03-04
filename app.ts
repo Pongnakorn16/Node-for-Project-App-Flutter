@@ -9,7 +9,7 @@ export const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:4200", "https://dok-test.web.app/"],
+    origin: ["http://localhost:4200", "https://dok-test.web.app"],
   })
 );
 
