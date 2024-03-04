@@ -3,8 +3,8 @@ import multer from "multer";
 import path from "path";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { UserPostRequest } from "./model/trip_post_req";
-import { UserPutRequest } from "./model/trip_post_req";
+import { UserPostRequest } from "./model/Model_for_api";
+import { UserPutRequest } from "./model/Model_for_api";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 

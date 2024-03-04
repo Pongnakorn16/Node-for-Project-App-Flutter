@@ -1,8 +1,8 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { UpdateImage, UploadImage, UserPostRequest, Vote } from "./model/trip_post_req";
-import { UserPutRequest } from "./model/trip_post_req";
+import { UpdateImage, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { UserPutRequest } from "./model/Model_for_api";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
@@ -23,6 +23,7 @@ router.get("/", (req, res)=>{
             if(err){
                 res.status(400).json(err);
             }else{
+                
                 res.json(result);
             }
         });
@@ -81,13 +82,10 @@ router.get("/image:uid",(req,res)=>{
 });
 
 // /trip/xxxx ดูว่าเป็น path parameter ดูจาก : ด้านหน้า
-router.get("/:id",(req, res)=>{
-    const id = req.params.id;
-    //Bad code
-    // const sql = "select * from trip where idx = " + id;
+router.get("/:uid",(req, res)=>{
+    const id = req.params.uid;
 
-    //Good code
-    const sql = "select * from test where ID = ?"
+    const sql = "select * from user2 where uid = ?"
 
     conn.query(sql, [id], (err, result)=>{ //sql มีตัวแปล 1 ตัวแปล จึงนำตัวแปล id ไปผูก
         if(err){
@@ -100,83 +98,8 @@ router.get("/:id",(req, res)=>{
     // res.send("Method GET in trip.ts with : " + id);
 });
 
-//POST /trip
-// router.post("/", (req, res)=>{
-//     const body = req.body;
-//     res.status(201);
-//     // res.send("Method POST in trip.ts with : " + JSON.stringify(body)); //text 
-//     res.json({
-//         text : "Method POST in trip.ts with : " + JSON.stringify(body)
-//     });
-// });
-
-
-// //การส่งแบบ path parameter จำเป็นต้องส่งตัวแปลครบทุกตัวตามที่กำหนดไว้แบบเป๊ะๆ
-// //การส่งแบบ query parameter ไม่จำเป็นต้องส่งตัวแปลครบทุกตัวก็ได้ส่งบ้างไม่ส่งบ้าง
-
-// //trip?id =3
-// //trip?name = ฟูจิ
-// //เติม price เข้าไปเลยก็ได้
-// router.get("/search/fields", (req, res)=>{
-//     const id = req.query.id;
-//     const name = req.query.name;
-//     const sql = "select * from trip where" + 
-//     "(idx IS NULL OR idx = ?) OR (name IS NULL OR name like ?)"
-//     // if(id){
-//     //     sql = "select * from trip where idx = ?";
-//     // }else if(name){
-//     //     sql =
-//     // }
-//     conn.query(sql, [id,"%" + name + "%"], (err, result)=>{
-//         if(err){
-//             res.status(400).json(err);
-//         }else{
-//             res.json(result);
-//         }
-//     });
-// });
-
-// //search from price
-// // /trip/search/price?price=20000
-// router.get("/search/price", (req, res)=>{
-//     const price = req.query.price;
-//     const sql = "select * from trip where" + 
-//     "(price IS NULL or price < ?)"
-//     // if(id){
-//     //     sql = "select * from trip where idx = ?";
-//     // }else if(name){
-//     //     sql =
-//     // }
-//     conn.query(sql, [price], (err, result)=>{
-//         if(err){
-//             res.status(400).json(err);
-//         }else{
-//             res.json(result);
-//         }
-//     });
-// });
-
-
-// // /trip/search/20000
-// router.get("/search/:price", (req, res)=>{
-//     const price = req.query.price;
-//     const sql = "select * from trip where" + 
-//     "(price IS NULL or price < ?)"
-//     // if(id){
-//     //     sql = "select * from trip where idx = ?";
-//     // }else if(name){
-//     //     sql =
-//     // }
-//     conn.query(sql, [price], (err, result)=>{
-//         if(err){
-//             res.status(400).json(err);
-//         }else{
-//             res.json(result);
-//         }
-//     });
-// });
-
 import mysql from "mysql";
+import { log } from "console";
     //Post /trip + Data
     router.post("/",(req,res)=>{
         const trip : UserPostRequest = req.body;
@@ -212,43 +135,27 @@ import mysql from "mysql";
 
     router.delete("/delete:pid",(req,res)=>{
         const pid = req.params.pid;
-        let sql = "Delete from photo where pid = ?"
+        let sql = "DELETE FROM vote WHERE pid = ?";
         conn.query(sql,[pid],(err,result)=>{
-            if(err) throw err;
-            res.status(200).json({
-                affected_row : result.affectedRows
+            if(err) {
+                let sqlDeletePhoto = "DELETE FROM photo WHERE pid = ?";
+            conn.query(sqlDeletePhoto, [pid], (err, result) => {
+                if (err) throw err;
+                res.status(200).json({
+                    affected_row : result.affectedRows
+                });
+            });
+            }
+            let sqlDeletePhoto = "DELETE FROM photo WHERE pid = ?";
+            conn.query(sqlDeletePhoto, [pid], (err, result) => {
+                if (err) throw err;
+                res.status(200).json({
+                    affected_row : result.affectedRows
+                });
             });
         });
     });
 
-    //NEED ALL FIELDS FOR UPDATE
-
-    // router.put("/:id",(req,res)=>{
-    //     const id = req.params.id;
-    //     const trip : TripPostRequest = req.body;
-
-    //     let sql =  "update  `trip` set `name`=?, `country`=?, `destinationid`=?, `coverimage`=?, `detail`=?, `price`=?, `duration`=? where `idx`=?";
-    //     sql = mysql.format(sql,[
-    //         trip.name,
-    //         trip.country,
-    //         trip.destinationid,
-    //         trip.coverimage,
-    //         trip.detail,
-    //         trip.price,
-    //         trip.duration,
-    //         id
-    //     ]);
-    //     conn.query(sql, (err,result)=>{
-    //         if(err) throw err;
-    //         res.status(200).json({
-    //             affected_row : result.affectedRows
-    //         });
-    //     });
-    // });
-
-    //NEED SOME FIELD FOR UPDATE
-    //Dynamic fields update
-    //Update put / trip /xxxxx + Data
 
     router.put("/:uid",async (req,res)=>{
         //Receive data
@@ -299,10 +206,11 @@ import mysql from "mysql";
         const uid = req.params.uid;
         const image_url : UploadImage = req.body;
 
-      let  sql =  "INSERT INTO `photo`(`uid`, `image`) VALUES (?,?)";
+      let  sql =  "INSERT INTO `photo`(`uid`, `image`, `upload-date`) VALUES (?,?,?)";
         sql = mysql.format(sql,[
             uid,
-            image_url.image_url
+            image_url.image_url,
+            image_url.Upload_datetime
         ]);
         conn.query(sql, (err,result)=>{
             if(err) throw err;
@@ -320,6 +228,42 @@ import mysql from "mysql";
       let  sql =  "update  `photo` set `image`=? where `pid`=?";
         sql = mysql.format(sql,[
             image_url.image_url,
+            pid
+        ]);
+        conn.query(sql, (err,result)=>{
+            if(err) throw err;
+            res.status(200).json({
+                affected_row : result.affectedRows
+            });
+        });
+    });
+
+
+    router.put("/incScore/:pid",async (req,res)=>{
+        //Receive data
+        const pid = req.params.pid;
+
+        let sql = "UPDATE photo SET score = score + 50 WHERE pid = ?";
+        sql = mysql.format(sql,[
+            pid
+        ]);
+        conn.query(sql, (err,result)=>{
+            if(err) throw err;
+            res.status(200).json({
+                affected_row : result.affectedRows
+            });
+        });
+    });
+
+
+
+    router.put("/decScore/:pid",async (req,res)=>{
+        //Receive data
+        const image_url : UploadImage = req.body;
+        const pid = req.params.pid;
+
+        let sql = "UPDATE photo SET score = score - 50 WHERE pid = ?";
+        sql = mysql.format(sql,[
             pid
         ]);
         conn.query(sql, (err,result)=>{

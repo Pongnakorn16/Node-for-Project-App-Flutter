@@ -28,9 +28,11 @@ export interface UpdateImage {
 
 export interface UploadImage {
     image_url : string;
+    Upload_datetime : string;
 }
 
 export interface Vote {
    uid : number;
    datetime : string;
 }
+

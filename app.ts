@@ -1,6 +1,6 @@
 import express from "express";
 import {router as index} from "./api/index"
-import {router as trip} from "./api/trip"
+import {router as db} from "./api/db"
 import {router as upload} from "./api/upload"
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -17,7 +17,7 @@ app.use(
 app.use(bodyParser.text());
 app.use(bodyParser.json());
 app.use("/", index);
-app.use("/trip", trip);
+app.use("/db", db);
 app.use("/upload", upload);
 app.use("/uploads",express.static("uploads"));
 
