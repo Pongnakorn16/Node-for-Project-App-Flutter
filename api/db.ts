@@ -6,7 +6,7 @@ import { UserPutRequest } from "./model/Model_for_api";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
-//  /trip 
+
 router.get("/admin/:type", (req, res)=>{
 
     const type = req.params.type;
