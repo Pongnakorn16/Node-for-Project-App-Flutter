@@ -28,11 +28,15 @@ export interface UpdateImage {
 
 export interface UploadImage {
     image_url : string;
-    Upload_datetime : string;
 }
 
 export interface Vote {
    uid : number;
-   datetime : string;
 }
+
+export interface UpdateScore {
+    lose_pid : number;
+    R_score_win : number;
+    R_score_lose : number;
+ }
 

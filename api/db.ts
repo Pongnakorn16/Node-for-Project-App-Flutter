@@ -1,25 +1,18 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { UpdateImage, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 //  /trip 
-router.get("/", (req, res)=>{
-    if(req.query.id){//ถ้า query ที่ส่งมามีตัวแปล id จะเข้า if
-        //trip?id=xxxxxxxxxx
-        const id = req.query.id;
-        const name = req.query.name;
-        // res.send("Method GET in trip.ts with : " + id +" "+name);             //แบบต่อ String
-        res.send(`Method GET in trip.ts with ${id} ${name}`);                    //แบบตัวหนอน alt+9+6 (เลขใน numpad)
-    }else{
-        // //trip
-        // res.send("Method GET in trip.ts")
+router.get("/admin/:type", (req, res)=>{
 
-        const sql = "select * from user2";
-        conn.query(sql, (err, result)=>{
+    const type = req.params.type;
+
+        const sql = "select * from user2 where type != ?";
+        conn.query(sql, [type], (err, result)=>{
             if(err){
                 res.status(400).json(err);
             }else{
@@ -27,8 +20,6 @@ router.get("/", (req, res)=>{
                 res.json(result);
             }
         });
-    }
-    
 });
 
 router.get("/:email/:password",(req, res)=>{
@@ -81,7 +72,6 @@ router.get("/image:uid",(req,res)=>{
     })
 });
 
-// /trip/xxxx ดูว่าเป็น path parameter ดูจาก : ด้านหน้า
 router.get("/:uid",(req, res)=>{
     const id = req.params.uid;
 
@@ -94,9 +84,8 @@ router.get("/:uid",(req, res)=>{
             res.json(result);
         }
     })
-
-    // res.send("Method GET in trip.ts with : " + id);
 });
+
 
 import mysql from "mysql";
 import { log } from "console";
@@ -201,16 +190,15 @@ import { log } from "console";
         });
     });
 
-    router.post("/upload:uid",async (req,res)=>{
+    router.post("/upload/:uid",async (req,res)=>{
         //Receive data
         const uid = req.params.uid;
         const image_url : UploadImage = req.body;
 
-      let  sql =  "INSERT INTO `photo`(`uid`, `image`, `upload-date`) VALUES (?,?,?)";
+      let  sql =  "INSERT INTO `photo`(`uid`, `image`) VALUES (?,?)";
         sql = mysql.format(sql,[
             uid,
-            image_url.image_url,
-            image_url.Upload_datetime
+            image_url.image_url
         ]);
         conn.query(sql, (err,result)=>{
             if(err) throw err;
@@ -239,37 +227,34 @@ import { log } from "console";
     });
 
 
-    router.put("/incScore/:pid",async (req,res)=>{
-        //Receive data
+    router.put("/updateScore/:pid", async (req, res) => {
+        // Receive data
+        const Result_score: UpdateScore = req.body;
         const pid = req.params.pid;
-
-        let sql = "UPDATE photo SET score = score + 50 WHERE pid = ?";
-        sql = mysql.format(sql,[
+    
+        let sql = "UPDATE `photo` SET `score`=? WHERE `pid`=?";
+        sql = mysql.format(sql, [
+            Result_score.R_score_win,
             pid
         ]);
-        conn.query(sql, (err,result)=>{
-            if(err) throw err;
-            res.status(200).json({
-                affected_row : result.affectedRows
-            });
-        });
-    });
-
-
-
-    router.put("/decScore/:pid",async (req,res)=>{
-        //Receive data
-        const image_url : UploadImage = req.body;
-        const pid = req.params.pid;
-
-        let sql = "UPDATE photo SET score = score - 50 WHERE pid = ?";
-        sql = mysql.format(sql,[
-            pid
-        ]);
-        conn.query(sql, (err,result)=>{
-            if(err) throw err;
-            res.status(200).json({
-                affected_row : result.affectedRows
+    
+        conn.query(sql, (err, result) => {
+            if (err) throw err;
+    
+            let sql_lose = "UPDATE `photo` SET `score`=? WHERE `pid`=?";
+            sql_lose = mysql.format(sql_lose, [
+                Result_score.R_score_lose,
+                Result_score.lose_pid
+            ]);
+    
+            conn.query(sql_lose, (err, result_lose) => {
+                if (err) throw err;
+                res.status(200).json({
+                    affected_rows: {
+                        winner: result.affectedRows,
+                        loser: result_lose.affectedRows
+                    }
+                });
             });
         });
     });
@@ -279,11 +264,10 @@ import { log } from "console";
         const v_pid = req.params.v_pid;
         const voteInfo : Vote = req.body;
 
-      let  sql =  "INSERT INTO `vote`(`pid`, `uid`, `time`) VALUES (?,?,?)";
+      let  sql =  "INSERT INTO `vote`(`pid`, `uid`) VALUES (?,?)";
         sql = mysql.format(sql,[
             v_pid,
             voteInfo.uid,
-            voteInfo.datetime
         ]);
         conn.query(sql, (err,result)=>{
             if(err) throw err;
