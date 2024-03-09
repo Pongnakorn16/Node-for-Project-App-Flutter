@@ -7,6 +7,20 @@ import { UserPutRequest } from "./model/Model_for_api";
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 
+router.get("/", (req, res)=>{
+
+        const sql = "select * from Movie4";
+        conn.query(sql, (err, result)=>{
+            if(err){
+                res.status(400).json(err);
+            }else{
+                
+                res.json(result);
+            }
+        });
+});
+
+
 router.get("/admin/:type", (req, res)=>{
 
     const type = req.params.type;
