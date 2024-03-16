@@ -428,3 +428,22 @@ import { log } from "console";
             });
         });
     });
+
+
+    router.put("/up/up:pid", async (req, res) => {
+        // Receive data
+        const SED_score = req.body;
+        const pid = req.params.pid;
+        
+        let sql = "UPDATE `ScoreEachDay` SET `s_score`=?, `s_date`=NOW() WHERE `pid`=? AND DATE(`s_date`) = CURDATE()";
+        sql = mysql.format(sql, [
+            SED_score.SED_score,
+            pid
+        ]);
+        
+        conn.query(sql, (err, result) => {
+            if (err) throw err;
+            res.status(200).json({});
+        });
+    });
+    
