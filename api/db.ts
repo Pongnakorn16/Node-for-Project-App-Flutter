@@ -1,7 +1,7 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
@@ -57,6 +57,108 @@ router.get("/image",(req,res)=>{
 });
 
 
+
+router.get("/getSEDdate",(req,res)=>{
+
+    const sql = "SELECT DATE_FORMAT(s_date, '%Y-%m-%d') AS date FROM ScoreEachDay ORDER BY sid DESC LIMIT 1"
+
+    conn.query(sql,(err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            res.json(result);
+        }
+    })
+});
+
+
+router.get("/getTopten",(req,res)=>{
+
+    const sql = "SELECT pid,uid,image,score,(SELECT COUNT(*) FROM photo AS p WHERE p.score > photo.score) + 1 AS photo_No FROM photo ORDER BY score DESC"
+
+    conn.query(sql,(err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            res.json(result);
+        }
+    })
+});
+
+router.get("/getRankTopten",(req,res)=>{
+
+    const sql = `WITH RankedPhotos AS (
+        SELECT 
+            pid,
+            uid,
+            image,
+            score,
+            (SELECT COUNT(*) FROM photo AS p WHERE p.score > photo.score) + 1 AS photo_No 
+        FROM 
+            photo
+    ),
+    RankedScores AS (
+        SELECT 
+            s_score,
+            ROW_NUMBER() OVER (ORDER BY s_score DESC) AS photo_No,
+            pid 
+        FROM 
+            ScoreEachDay 
+        WHERE 
+            DATE(s_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+    )
+    SELECT 
+        RankedPhotos.pid,
+        RankedPhotos.photo_No AS Today_photo_No,
+        RankedScores.photo_No AS Yesterday_photo_No
+    FROM 
+        RankedPhotos
+    JOIN 
+        RankedScores ON RankedPhotos.pid = RankedScores.pid
+    ORDER BY RankedPhotos.score DESC`;
+
+    conn.query(sql,(err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            res.json(result);
+        }
+    })
+});
+
+
+router.get("/graphScore:pid", (req, res)=>{
+
+    const pid = req.params.pid;
+
+        const sql = "SELECT DATE_FORMAT(s_date, '%d/%m/%Y') AS s_date, s_score FROM (SELECT s_score, s_date FROM ScoreEachDay WHERE pid = ? ORDER BY s_date DESC LIMIT 7) AS temp  ORDER BY s_date ASC"
+        conn.query(sql, [pid], (err, result)=>{
+            if(err){
+                res.status(400).json(err);
+            }else{
+                
+                res.json(result);
+            }
+        });
+});
+
+
+router.get("/graphCurrentScore:pid", (req, res)=>{
+
+    const pid = req.params.pid;
+
+        const sql = "SELECT score, DATE_FORMAT(NOW(), '%d/%m/%Y') AS s_date FROM photo WHERE pid = ?"
+        conn.query(sql, [pid], (err, result)=>{
+            if(err){
+                res.status(400).json(err);
+            }else{
+                
+                res.json(result);
+            }
+        });
+});
+
+
 router.get("/image:uid",(req,res)=>{
 
     const uid = req.params.uid;
@@ -72,7 +174,7 @@ router.get("/image:uid",(req,res)=>{
     })
 });
 
-router.get("/:uid",(req, res)=>{
+router.get("/userall:uid",(req, res)=>{
     const id = req.params.uid;
 
     const sql = "select * from user2 where uid = ?"
@@ -86,6 +188,34 @@ router.get("/:uid",(req, res)=>{
     })
 });
 
+router.get("/username:uid",(req, res)=>{
+    const id = req.params.uid;
+
+    const sql = "select username from user2 where uid = ?"
+
+    conn.query(sql, [id], (err, result)=>{ //sql มีตัวแปล 1 ตัวแปล จึงนำตัวแปล id ไปผูก
+        if(err){
+            res.status(400).json(err);
+        }else{
+            res.json(result);
+        }
+    })
+});
+
+
+router.get("/toptenUser/:uid",(req, res)=>{
+    const id = req.params.uid;
+
+    const sql = "select * from user2 where uid = ?"
+
+    conn.query(sql, [id], (err, result)=>{ //sql มีตัวแปล 1 ตัวแปล จึงนำตัวแปล id ไปผูก
+        if(err){
+            res.status(400).json(err);
+        }else{
+            res.json(result);
+        }
+    })
+});
 
 import mysql from "mysql";
 import { log } from "console";
@@ -264,10 +394,32 @@ import { log } from "console";
         const v_pid = req.params.v_pid;
         const voteInfo : Vote = req.body;
 
-      let  sql =  "INSERT INTO `vote`(`pid`, `uid`) VALUES (?,?)";
+      let  sql =  "INSERT INTO `vote`(`winner_pid`, `uid`, `loser_pid`, `increase_score`, `decrease_score`) VALUES (?,?,?,?,?)";
         sql = mysql.format(sql,[
             v_pid,
-            voteInfo.uid,
+            voteInfo.vote_uid,
+            voteInfo.loser_pid,
+            voteInfo.increase_score,
+            voteInfo.decrease_score,
+        ]);
+        conn.query(sql, (err,result)=>{
+            if(err) throw err;
+            res.status(200).json({
+                affected_row : result.affectedRows
+            });
+        });
+    });
+
+
+    router.post("/SED/:pid",async (req,res)=>{
+        //Receive data
+        const SED_pid = req.params.pid;
+        const SED_point : SED = req.body;
+
+      let  sql =  "INSERT INTO `ScoreEachDay`(`pid`, `s_score`) VALUES (?,?)";
+        sql = mysql.format(sql,[
+            SED_pid,
+            SED_point.SED_score
         ]);
         conn.query(sql, (err,result)=>{
             if(err) throw err;

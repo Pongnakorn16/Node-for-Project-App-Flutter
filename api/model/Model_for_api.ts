@@ -31,8 +31,16 @@ export interface UploadImage {
 }
 
 export interface Vote {
-   uid : number;
+    vote_uid: number;
+    loser_pid: number;
+    increase_score: number;
+    decrease_score: number;
 }
+
+export interface SED {
+    SED_score : number;
+}
+
 
 export interface UpdateScore {
     lose_pid : number;
