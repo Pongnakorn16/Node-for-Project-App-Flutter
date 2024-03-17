@@ -99,23 +99,28 @@ router.get("/getRankTopten",(req,res)=>{
     ),
     RankedScores AS (
         SELECT 
-            s_score,
-            ROW_NUMBER() OVER (ORDER BY s_score DESC) AS photo_No,
-            pid 
+            COALESCE(rn, 0) AS Yesterday_photo_No,
+            pid
         FROM 
-            ScoreEachDay 
-        WHERE 
-            DATE(s_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+            (SELECT 
+                ROW_NUMBER() OVER (ORDER BY s_score DESC) AS rn,
+                pid 
+            FROM 
+                ScoreEachDay 
+            WHERE 
+                DATE(s_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+            ) AS subquery
     )
     SELECT 
         RankedPhotos.pid,
         RankedPhotos.photo_No AS Today_photo_No,
-        RankedScores.photo_No AS Yesterday_photo_No
+        RankedScores.Yesterday_photo_No
     FROM 
         RankedPhotos
-    JOIN 
+    LEFT JOIN 
         RankedScores ON RankedPhotos.pid = RankedScores.pid
-    ORDER BY RankedPhotos.score DESC`;
+    ORDER BY RankedPhotos.score DESC;
+    `;
 
     conn.query(sql,(err, result)=>{
         if(err){
@@ -252,28 +257,25 @@ import { log } from "console";
     });
     
 
-    router.delete("/delete:pid",(req,res)=>{
+    router.delete("/delete:pid", (req, res) => {
         const pid = req.params.pid;
-        let sql = "DELETE FROM vote WHERE pid = ?";
-        conn.query(sql,[pid],(err,result)=>{
-            if(err) {
+        let sqlDeleteScoreEachDay = "DELETE FROM ScoreEachDay WHERE pid = ?";
+        conn.query(sqlDeleteScoreEachDay, [pid], (err, result) => {
+            if (err) throw err;
+            let sqlDeleteVote = "DELETE FROM vote WHERE winner_pid and loser_pid = ?";
+            conn.query(sqlDeleteVote, [pid], (err, result) => {
+                if (err) throw err;
                 let sqlDeletePhoto = "DELETE FROM photo WHERE pid = ?";
-            conn.query(sqlDeletePhoto, [pid], (err, result) => {
-                if (err) throw err;
-                res.status(200).json({
-                    affected_row : result.affectedRows
-                });
-            });
-            }
-            let sqlDeletePhoto = "DELETE FROM photo WHERE pid = ?";
-            conn.query(sqlDeletePhoto, [pid], (err, result) => {
-                if (err) throw err;
-                res.status(200).json({
-                    affected_row : result.affectedRows
+                conn.query(sqlDeletePhoto, [pid], (err, result) => {
+                    if (err) throw err;
+                    res.status(200).json({
+                        affected_row: result.affectedRows
+                    });
                 });
             });
         });
     });
+    
 
 
     router.put("/:uid",async (req,res)=>{
@@ -446,4 +448,3 @@ import { log } from "console";
             res.status(200).json({});
         });
     });
-    
