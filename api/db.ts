@@ -448,17 +448,32 @@ import { log } from "console";
 
     router.put("/up/up:pid", async (req, res) => {
         // Receive data
-        const SED_score = req.body;
+        const SED_score: UpdateScore = req.body;
         const pid = req.params.pid;
-        
+    
         let sql = "UPDATE `ScoreEachDay` SET `s_score`=?, `s_date`=NOW() WHERE `pid`=? AND DATE(`s_date`) = CURDATE()";
         sql = mysql.format(sql, [
-            SED_score.SED_score,
+            SED_score.R_score_win,
             pid
         ]);
-        
+    
         conn.query(sql, (err, result) => {
             if (err) throw err;
-            res.status(200).json({});
+    
+            let sql_lose = "UPDATE `ScoreEachDay` SET `s_score`=?, `s_date`=NOW() WHERE `pid`=? AND DATE(`s_date`) = CURDATE()";
+            sql_lose = mysql.format(sql_lose, [
+                SED_score.R_score_lose,
+                SED_score.lose_pid
+            ]);
+    
+            conn.query(sql_lose, (err, result_lose) => {
+                if (err) throw err;
+                res.status(200).json({
+                    affected_rows: {
+                        winner: result.affectedRows,
+                        loser: result_lose.affectedRows
+                    }
+                });
+            });
         });
     });
