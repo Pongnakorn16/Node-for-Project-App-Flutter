@@ -88,7 +88,7 @@ router.get("/getTopten",(req,res)=>{
 
 router.get("/getYesTopten",(req,res)=>{
 
-    const sql = "SELECT *, ROW_NUMBER() OVER (ORDER BY s_score DESC) AS YesterdayRank FROM ScoreEachDay WHERE DATE(s_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) ORDER BY s_score DESC;"
+    const sql = "SELECT *,ROW_NUMBER() OVER (ORDER BY s_score DESC) AS YesterdayRank FROM ScoreEachDay WHERE DATE(s_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) ORDER BY s_score DESC;"
 
     conn.query(sql,(err, result)=>{
         if(err){
