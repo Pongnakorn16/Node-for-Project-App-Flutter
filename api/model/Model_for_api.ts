@@ -48,3 +48,13 @@ export interface UpdateScore {
     R_score_lose : number;
  }
 
+
+ export interface MB_user {
+    Email : string;
+    Username : string;
+    Password : string;
+    Wallet : number;
+    image : string;
+ }
+
+

@@ -1,24 +1,94 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
+import mysql from 'mysql';
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 
-router.get("/userxx", (req, res)=>{
+// router.get("/user", (req, res)=>{
 
-        const sql = "select * from user2";
-        conn.query(sql, (err, result)=>{
-            if(err){
-                res.status(400).json(err);
-            }else{
+//         const sql = "select * from MB_user";
+//         conn.query(sql, (err, result)=>{
+//             if(err){
+//                 res.status(400).json(err);
+//             }else{
                 
-                res.json(result);
-            }
-        });
+//                 res.json(result);
+//             }
+//         });
+// });
+
+router.post('/register/user', (req, res) => {
+    const Userinfo : MB_user = req.body;
+
+    console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
+
+    let sql = "INSERT INTO MB_user (Email, Username, Password, Wallet, image) VALUES (?, ?, ?, ?, ?)";
+    sql = mysql.format(sql, [
+        Userinfo.Email,
+        Userinfo.Username,
+        Userinfo.Password,
+        Userinfo.Wallet,
+        Userinfo.image
+    ]);
+
+    conn.query(sql, (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.status(200).json({ affected_rows: result.affectedRows });
+    });
 });
+
+
+
+
+router.post('/users/login', (req, res) => {
+    const Userinfo : MB_user = req.body;
+
+    console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
+
+    let sql = "Select * from MB_user Where Email = ? and Password = ?";
+
+    conn.query(sql, [Userinfo.Email,Userinfo.Password],(err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.status(200).json(result);
+    });
+});
+
+    
+router.post('/random', async (req, res) => {
+    const lottery_numbers = req.body.numbers; // สมมุติว่า req.body มี property เป็น numbers ที่เป็นอาร์เรย์
+  
+    // ตรวจสอบข้อมูล
+    if (!Array.isArray(lottery_numbers) || !lottery_numbers.every(num => typeof num === 'string')) {
+      return res.status(400).send('Invalid input: numbers should be an array of strings');
+    }
+  
+    // เตรียมคำสั่ง SQL
+    const sql = 'INSERT INTO MB_lottery (Numbers) VALUES ?';
+    const values = lottery_numbers.map(num => [num]); // แปลงเป็นอาร์เรย์ของอาร์เรย์
+  
+    try {
+      // ใช้ conn.query โดยตรง
+      await conn.query(sql, [values]);
+      res.status(200).send('Insert success');
+    } catch (error) {
+      console.error('Insert failed:', error);
+      res.status(500).send('Insert failed');
+    }
+  });
+  
+
+
+
 
 // router.get("/:email/:password",(req, res)=>{
 //     const email = req.params.email;
