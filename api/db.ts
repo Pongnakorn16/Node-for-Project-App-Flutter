@@ -8,18 +8,18 @@ import mysql from 'mysql';
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 
-// router.get("/user", (req, res)=>{
+router.get("/user", (req, res)=>{
 
-//         const sql = "select * from MB_user";
-//         conn.query(sql, (err, result)=>{
-//             if(err){
-//                 res.status(400).json(err);
-//             }else{
+        const sql = "select * from MB_user";
+        conn.query(sql, (err, result)=>{
+            if(err){
+                res.status(400).json(err);
+            }else{
                 
-//                 res.json(result);
-//             }
-//         });
-// });
+                res.json(result);
+            }
+        });
+});
 
 router.post('/register/user', (req, res) => {
     const Userinfo : MB_user = req.body;
