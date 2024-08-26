@@ -85,8 +85,45 @@ router.post('/random', async (req, res) => {
       res.status(500).send('Insert failed');
     }
   });
-  
 
+  router.get("/get_WinLottery", (req, res)=>{
+
+    const sql = "select * from MB_lottery where Status > 0 ORDER BY Status ASC";
+    conn.query(sql, (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+  
+  router.get("/get_allLottery", (req, res)=>{
+
+    const sql = "select * from MB_lottery";
+    conn.query(sql, (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
+router.get("/user/:uid", (req, res) => {
+    const uid = req.params.uid; // รับค่า uid จากพารามิเตอร์
+    const sql = "SELECT * FROM MB_user WHERE uid = ?";
+    conn.query(sql, [uid], (err, result) => {
+        if (err) {
+            res.status(400).json(err);
+        } else {
+            res.json(result);
+        }
+    });
+});
 
 
 
