@@ -1,9 +1,10 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 import mysql from 'mysql';
+import { log } from "console";
 
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
@@ -20,6 +21,52 @@ router.get("/user", (req, res)=>{
             }
         });
 });
+
+
+router.get("/get_cart", (req, res)=>{
+
+    const sql = "select * from MB_cart";
+    conn.query(sql, (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
+
+router.get('/get_cart/:uid', (req, res) => {
+    const uid = req.params.uid; // ดึงค่า uid จาก path parameter
+  
+    console.log('Received UID:', uid); // ตรวจสอบค่า uid ที่ได้รับ
+  
+    if (!uid) {
+      return res.status(400).json({ error: 'Missing UID' });
+    }
+  
+    // ใช้ค่า uid ในการดึงข้อมูลจากฐานข้อมูล
+    let sql = `
+        SELECT c.*, l.* 
+        FROM MB_cart c
+        JOIN MB_lottery l ON c.c_lid = l.lid
+        WHERE c.c_uid = ?
+    `;
+    sql = mysql.format(sql, [uid]);
+  
+    conn.query(sql, (err, result) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      res.status(200).json(result);
+    });
+  });
+  
+
+
 
 router.post('/register/user', (req, res) => {
     const Userinfo : MB_user = req.body;
@@ -45,6 +92,49 @@ router.post('/register/user', (req, res) => {
 });
 
 
+router.post('/add_toCart', (req, res) => {
+    const cartInfo : MB_cart =  req.body; // อาจต้องตรวจสอบชนิดของข้อมูลเพิ่มเติม
+
+    console.log('Received Info:', req.body); // ตรวจสอบข้อมูลที่ได้รับ
+
+    // ตรวจสอบว่ามี lid นี้อยู่ในฐานข้อมูลหรือไม่
+    let checkSql = "SELECT * FROM MB_cart WHERE c_lid = ? AND c_uid = ?";
+    checkSql = mysql.format(checkSql, [
+        cartInfo.c_lid,
+        cartInfo.c_uid
+    ]);
+
+    conn.query(checkSql, (checkErr, checkResult) => {
+        if (checkErr) {
+            console.error(checkErr);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        if (checkResult.length > 0) {
+            // หากพบข้อมูลที่มีอยู่แล้วในฐานข้อมูล
+            return res.status(409).json({ message: 'The item already exists in the cart' });
+        } else {
+            console.log()
+            // หากไม่มีข้อมูลในฐานข้อมูล ทำการ INSERT ข้อมูลใหม่
+            let insertSql = "INSERT INTO MB_cart (c_lid, c_uid) VALUES (?, ?)";
+            insertSql = mysql.format(insertSql, [
+                cartInfo.c_lid,
+                cartInfo.c_uid
+            ]);
+
+            conn.query(insertSql, (insertErr, insertResult) => {
+                if (insertErr) {
+                    console.error(insertErr);
+                    return res.status(500).json({ error: 'Database error' });
+                }
+                res.status(200).json({ affected_rows: insertResult.affectedRows });
+            });
+        }
+    });
+});
+
+
+
 
 
 router.post('/users/login', (req, res) => {
@@ -65,19 +155,18 @@ router.post('/users/login', (req, res) => {
 
     
 router.post('/random', async (req, res) => {
-    const lottery_numbers = req.body.numbers; // สมมุติว่า req.body มี property เป็น numbers ที่เป็นอาร์เรย์
+    const lottery_numbers = req.body.numbers;
   
-    // ตรวจสอบข้อมูล
+    console.log('Received numbers:', lottery_numbers); // เพิ่มตรงนี้
+  
     if (!Array.isArray(lottery_numbers) || !lottery_numbers.every(num => typeof num === 'string')) {
       return res.status(400).send('Invalid input: numbers should be an array of strings');
     }
   
-    // เตรียมคำสั่ง SQL
     const sql = 'INSERT INTO MB_lottery (Numbers) VALUES ?';
-    const values = lottery_numbers.map(num => [num]); // แปลงเป็นอาร์เรย์ของอาร์เรย์
+    const values = lottery_numbers.map(num => [num]);
   
     try {
-      // ใช้ conn.query โดยตรง
       await conn.query(sql, [values]);
       res.status(200).send('Insert success');
     } catch (error) {
@@ -85,10 +174,11 @@ router.post('/random', async (req, res) => {
       res.status(500).send('Insert failed');
     }
   });
+  
 
   router.get("/get_WinLottery", (req, res)=>{
 
-    const sql = "select * from MB_lottery where Status > 0 ORDER BY Status ASC";
+    const sql = "select * from MB_lottery where Status_prize > 0 ORDER BY Status_prize ASC";
     conn.query(sql, (err, result)=>{
         if(err){
             res.status(400).json(err);
@@ -101,7 +191,7 @@ router.post('/random', async (req, res) => {
   
   router.get("/get_allLottery", (req, res)=>{
 
-    const sql = "select * from MB_lottery";
+    const sql = "select * from MB_lottery where Status_buy = 0";
     conn.query(sql, (err, result)=>{
         if(err){
             res.status(400).json(err);

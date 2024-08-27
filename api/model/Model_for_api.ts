@@ -57,4 +57,9 @@ export interface UpdateScore {
     image : string;
  }
 
+ export interface MB_cart {
+    c_lid : number;
+    c_uid : number;
+ }
+
 
