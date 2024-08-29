@@ -202,18 +202,38 @@ router.post('/random', async (req, res) => {
     });
 });
 
-
-router.get("/user/:uid", (req, res) => {
+router.put("/purchase/:uid", (req, res) => {
     const uid = req.params.uid; // รับค่า uid จากพารามิเตอร์
-    const sql = "SELECT * FROM MB_user WHERE uid = ?";
-    conn.query(sql, [uid], (err, result) => {
+    const lids = req.body.lids; // รับค่า lids จาก request body
+
+    console.log('Received INFO:', lids);
+
+    if (!Array.isArray(lids) || lids.length === 0) {
+        return res.status(400).json({ message: "Invalid or empty lids array" });
+    }
+
+    // สร้างคำสั่ง SQL สำหรับอัปเดตหลาย lid
+    const updateSql = "UPDATE MB_lottery SET Status_buy = 1, Owner_uid = ? WHERE lid IN (?)";
+
+    conn.query(updateSql, [uid, lids], (err, result) => {
         if (err) {
-            res.status(400).json(err);
-        } else {
-            res.json(result);
+            return res.status(400).json(err); // ส่ง error กลับหากมีปัญหา
         }
+
+        // หากอัปเดตสำเร็จแล้ว ให้ทำการลบแถวใน MB_cart
+        const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
+
+        conn.query(deleteSql, [uid], (err) => {
+            if (err) {
+                return res.status(400).json(err); // ส่ง error กลับหากมีปัญหาในการลบ
+            }
+
+            // ส่งผลลัพธ์กลับหากการลบสำเร็จ
+            res.json({ message: "Purchase successful and cart cleared", affectedRows: result.affectedRows });
+        });
     });
 });
+
 
 
 
