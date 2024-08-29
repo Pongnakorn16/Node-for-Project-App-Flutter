@@ -235,6 +235,21 @@ router.put("/purchase/:uid", (req, res) => {
 });
 
 
+router.delete("/remove_cart/:lid", (req, res) => {
+    const lid = req.params.lid; // รับค่า uid จากพารามิเตอร์
+
+    console.log('Received INFO:', lid);
+
+        // หากอัปเดตสำเร็จแล้ว ให้ทำการลบแถวใน MB_cart
+        const deleteSql = "DELETE FROM MB_cart WHERE c_lid = ?";
+
+        conn.query(deleteSql, [lid], (err) => {
+            if (err) {
+                return res.status(400).json(err); // ส่ง error กลับหากมีปัญหาในการลบ
+            }
+        });
+    });
+
 
 
 // router.get("/:email/:password",(req, res)=>{
