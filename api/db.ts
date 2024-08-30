@@ -236,19 +236,23 @@ router.put("/purchase/:uid", (req, res) => {
 
 
 router.delete("/remove_cart/:lid", (req, res) => {
-    const lid = req.params.lid; // รับค่า uid จากพารามิเตอร์
+    const lid = req.params.lid; // รับค่า lid จากพารามิเตอร์
 
     console.log('Received INFO:', lid);
 
-        // หากอัปเดตสำเร็จแล้ว ให้ทำการลบแถวใน MB_cart
-        const deleteSql = "DELETE FROM MB_cart WHERE c_lid = ?";
+    // ลบแถวใน MB_cart
+    const deleteSql = "DELETE FROM MB_cart WHERE c_lid = ?";
 
-        conn.query(deleteSql, [lid], (err) => {
-            if (err) {
-                return res.status(400).json(err); // ส่ง error กลับหากมีปัญหาในการลบ
-            }
-        });
+    conn.query(deleteSql, [lid], (err) => {
+        if (err) {
+            return res.status(400).json(err); // ส่ง error กลับหากมีปัญหาในการลบ
+        }
+
+        // ส่งการตอบกลับสำเร็จ
+        res.status(200).json({ message: 'Item removed successfully' });
     });
+});
+
 
 
 
