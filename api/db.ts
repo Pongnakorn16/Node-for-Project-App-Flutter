@@ -22,6 +22,18 @@ router.get("/user", (req, res)=>{
         });
 });
 
+router.get("/user/:uid", (req, res)=>{
+    const uid = req.params.uid;
+        const sql = "select * from MB_user where uid = ?";
+        conn.query(sql, [uid],(err, result) => {
+            if(err){
+                res.status(400).json(err);
+            }else{
+                res.json(result);
+            }
+        });
+});
+
 
 router.get("/get_cart", (req, res)=>{
 
@@ -202,8 +214,22 @@ router.post('/random', async (req, res) => {
     });
 });
 
-router.put("/purchase/:uid", (req, res) => {
-    const uid = req.params.uid; // รับค่า uid จากพารามิเตอร์
+
+router.get("/get_UserLottery/:uid", (req, res)=>{
+    const uid = req.params.uid;
+        const sql = "select * from MB_lottery where Owner_uid = ?";
+        conn.query(sql, [uid],(err, result) => {
+            if(err){
+                res.status(400).json(err);
+            }else{
+                res.json(result);
+            }
+        });
+});
+
+router.put("/purchase/:pay/:uid", (req, res) => {
+    const uid = req.params.uid;
+    const wallet_pay = req.params.pay; // รับค่า wallet_pay จากพารามิเตอร์
     const lids = req.body.lids; // รับค่า lids จาก request body
 
     console.log('Received INFO:', lids);
@@ -212,26 +238,68 @@ router.put("/purchase/:uid", (req, res) => {
         return res.status(400).json({ message: "Invalid or empty lids array" });
     }
 
-    // สร้างคำสั่ง SQL สำหรับอัปเดตหลาย lid
-    const updateSql = "UPDATE MB_lottery SET Status_buy = 1, Owner_uid = ? WHERE lid IN (?)";
-
-    conn.query(updateSql, [uid, lids], (err, result) => {
+    // อัปเดต Wallet ใน MB_user โดยลบค่า wallet_pay
+    const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet - ? WHERE uid = ?";
+    conn.query(updateWalletSql, [wallet_pay, uid], (err) => {
         if (err) {
-            return res.status(400).json(err); // ส่ง error กลับหากมีปัญหา
+            return res.status(400).json(err);
         }
 
-        // หากอัปเดตสำเร็จแล้ว ให้ทำการลบแถวใน MB_cart
-        const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
-
-        conn.query(deleteSql, [uid], (err) => {
+        // อัปเดตสถานะใน MB_lottery
+        const updateSql = "UPDATE MB_lottery SET Status_buy = 1, Owner_uid = ? WHERE lid IN (?)";
+        conn.query(updateSql, [uid, lids], (err, result) => {
             if (err) {
-                return res.status(400).json(err); // ส่ง error กลับหากมีปัญหาในการลบ
+                return res.status(400).json(err);
             }
 
-            // ส่งผลลัพธ์กลับหากการลบสำเร็จ
-            res.json({ message: "Purchase successful and cart cleared", affectedRows: result.affectedRows });
+            // ลบรายการใน MB_cart
+            const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
+            conn.query(deleteSql, [uid], (err) => {
+                if (err) {
+                    return res.status(400).json(err);
+                }
+
+                // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
+                res.json({
+                    message: "Purchase successful, cart cleared, and wallet updated",
+                    affectedRows: result.affectedRows
+                });
+            });
         });
     });
+});
+
+
+router.put("/add_prize/:lid/:prize", (req, res) => {
+    const lid = req.params.lid; 
+    const Prize = req.params.prize; 
+
+    console.log('Received INFO:', lid);
+    console.log('Received INFO:', Prize);
+
+    // อัปเดต Wallet ใน MB_user โดยลบค่า wallet_pay
+    const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet + ?";
+    conn.query(updateWalletSql, [Prize], (err) => {
+        if (err) {
+            return res.status(400).json(err);
+        }
+        
+        const deleteSql = "DELETE FROM MB_lottery WHERE lid = ?";
+            conn.query(deleteSql, [lid], (err) => {
+                if (err) {
+                    return res.status(400).json(err);
+                }
+
+                // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
+                res.json({
+                    message: "CashOut successful, cart cleared, and wallet updated",
+                });
+    
+            res.json({
+                    message: "Cash_Out successful, cart cleared, and wallet updated",
+                });
+        });    
+     });
 });
 
 
