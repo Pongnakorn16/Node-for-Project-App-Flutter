@@ -217,8 +217,26 @@ router.post('/random', async (req, res) => {
 
 router.get("/get_UserLottery/:uid", (req, res)=>{
     const uid = req.params.uid;
-        const sql = "select * from MB_lottery where Owner_uid = ?";
+        const sql = "SELECT * FROM MB_lottery WHERE Owner_uid = ? ORDER BY CASE WHEN Status_prize = 0 THEN 2 WHEN Status_prize BETWEEN 1 AND 5 THEN 1 END, Status_prize ASC";
         conn.query(sql, [uid],(err, result) => {
+            if(err){
+                res.status(400).json(err);
+            }else{
+                res.json(result);
+            }
+        });
+});
+
+
+router.get("/get_history/:uid", (req, res)=>{
+    const uid = req.params.uid;
+    const sql = `
+    SELECT l.Numbers, h.h_wallet
+    FROM MB_lottery l
+    JOIN MB_history h ON l.Owner_uid = h.h_uid
+    WHERE l.Owner_uid = ? AND h.h_uid = ?;
+`;
+        conn.query(sql, [uid,uid],(err, result) => {
             if(err){
                 res.status(400).json(err);
             }else{
@@ -252,17 +270,24 @@ router.put("/purchase/:pay/:uid", (req, res) => {
                 return res.status(400).json(err);
             }
 
-            // ลบรายการใน MB_cart
-            const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
-            conn.query(deleteSql, [uid], (err) => {
+            const InsertWalletSql = "INSERT INTO MB_history (h_wallet, h_uid) VALUES (?, ?)";
+            conn.query(InsertWalletSql, [wallet_pay,uid], (err) => {
                 if (err) {
                     return res.status(400).json(err);
                 }
-
-                // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
-                res.json({
-                    message: "Purchase successful, cart cleared, and wallet updated",
-                    affectedRows: result.affectedRows
+                
+                const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
+                conn.query(deleteSql, [uid], (err) => {
+                    if (err) {
+                        return res.status(400).json(err);
+                    }
+                    
+    
+                    // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
+                    res.json({
+                        message: "Purchase successful, cart cleared, and wallet updated",
+                        affectedRows: result.affectedRows
+                    });
                 });
             });
         });
@@ -270,37 +295,48 @@ router.put("/purchase/:pay/:uid", (req, res) => {
 });
 
 
-router.put("/add_prize/:lid/:prize", (req, res) => {
+router.put("/add_prize/:lid/:prize/:uid", (req, res) => {
     const lid = req.params.lid; 
-    const Prize = req.params.prize; 
+    const Prize = req.params.prize;
+    const uid = req.params.uid; 
 
     console.log('Received INFO:', lid);
     console.log('Received INFO:', Prize);
+    console.log('Received INFO:', uid);
 
-    // อัปเดต Wallet ใน MB_user โดยลบค่า wallet_pay
+    // อัปเดต Wallet ใน MB_user
     const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet + ?";
     conn.query(updateWalletSql, [Prize], (err) => {
         if (err) {
-            return res.status(400).json(err);
+            console.error('Error updating wallet:', err);
+            return res.status(400).json({ error: err.message });
         }
         
-        const deleteSql = "DELETE FROM MB_lottery WHERE lid = ?";
-            conn.query(deleteSql, [lid], (err) => {
-                if (err) {
-                    return res.status(400).json(err);
-                }
+        const InsertWalletSql = "INSERT INTO MB_history (h_wallet, h_uid) VALUES (?, ?)";
+        conn.query(InsertWalletSql, [Prize, uid], (err) => {
+            if (err) {
+                console.error('Error inserting into history:', err);
+                return res.status(400).json({ error: err.message });
+            }
+                
+                // ลบข้อมูลใน MB_lottery
+                const deleteSql = "DELETE FROM MB_lottery WHERE lid = ?";
+                conn.query(deleteSql, [lid], (err) => {
+                    if (err) {
+                        console.error('Error deleting from lottery:', err);
+                        return res.status(400).json({ error: err.message });
+                    }
 
-                // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
-                res.json({
-                    message: "CashOut successful, cart cleared, and wallet updated",
+                    // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
+                    res.json({
+                        message: "CashOut successful, cart cleared, and wallet updated",
+                    });
                 });
-    
-            res.json({
-                    message: "Cash_Out successful, cart cleared, and wallet updated",
-                });
+            });
         });    
-     });
-});
+    });
+
+
 
 
 router.delete("/remove_cart/:lid", (req, res) => {
