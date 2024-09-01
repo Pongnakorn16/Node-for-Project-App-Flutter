@@ -228,27 +228,24 @@ router.get("/get_UserLottery/:uid", (req, res)=>{
 });
 
 
-router.get("/get_history/:uid", (req, res)=>{
+router.get("/get_history/:uid", (req, res) => {
     const uid = req.params.uid;
-    const sql = `
-    SELECT l.Numbers, h.h_wallet
-    FROM MB_lottery l
-    JOIN MB_history h ON l.Owner_uid = h.h_uid
-    WHERE l.Owner_uid = ? AND h.h_uid = ?;
-`;
-        conn.query(sql, [uid,uid],(err, result) => {
-            if(err){
-                res.status(400).json(err);
-            }else{
-                res.json(result);
-            }
-        });
+    const sql = "Select * from MB_history where h_uid = ? ORDER BY hid DESC";
+    
+    conn.query(sql, [uid], (err, result) => {
+        if (err) {
+            res.status(400).json(err);
+        } else {
+            res.json(result);
+        }
+    });
 });
+
 
 router.put("/purchase/:pay/:uid", (req, res) => {
     const uid = req.params.uid;
-    const wallet_pay = req.params.pay; // รับค่า wallet_pay จากพารามิเตอร์
-    const lids = req.body.lids; // รับค่า lids จาก request body
+    const wallet_pay = req.params.pay;
+    const lids = req.body.lids;
 
     console.log('Received INFO:', lids);
 
@@ -256,38 +253,56 @@ router.put("/purchase/:pay/:uid", (req, res) => {
         return res.status(400).json({ message: "Invalid or empty lids array" });
     }
 
-    // อัปเดต Wallet ใน MB_user โดยลบค่า wallet_pay
     const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet - ? WHERE uid = ?";
     conn.query(updateWalletSql, [wallet_pay, uid], (err) => {
         if (err) {
             return res.status(400).json(err);
         }
 
-        // อัปเดตสถานะใน MB_lottery
         const updateSql = "UPDATE MB_lottery SET Status_buy = 1, Owner_uid = ? WHERE lid IN (?)";
         conn.query(updateSql, [uid, lids], (err, result) => {
             if (err) {
                 return res.status(400).json(err);
             }
 
-            const InsertWalletSql = "INSERT INTO MB_history (h_wallet, h_uid) VALUES (?, ?)";
-            conn.query(InsertWalletSql, [wallet_pay,uid], (err) => {
-                if (err) {
-                    return res.status(400).json(err);
-                }
-                
-                const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
-                conn.query(deleteSql, [uid], (err) => {
+            const h_wallet = Number(wallet_pay) / lids.length;
+
+            lids.forEach((lid) => {
+                // ดึงค่า Numbers จาก MB_lottery โดยใช้ lid
+                const selectNumberSql = "SELECT Numbers FROM MB_lottery WHERE lid = ?";
+                conn.query(selectNumberSql, [lid], (err, results) => {
                     if (err) {
                         return res.status(400).json(err);
                     }
-                    
-    
-                    // ส่งผลลัพธ์กลับหากทุกอย่างสำเร็จ
-                    res.json({
-                        message: "Purchase successful, cart cleared, and wallet updated",
-                        affectedRows: result.affectedRows
-                    });
+
+                    // ตรวจสอบว่ามีผลลัพธ์จากการค้นหาหรือไม่
+                    if (results.length > 0) {
+                        const h_number = results[0].Numbers;
+
+                        // ทำการ INSERT ข้อมูลเข้า MB_history รวมถึง h_number
+                        const insertHistorySql = "INSERT INTO MB_history (h_wallet, h_uid, h_lid, h_number) VALUES (?, ?, ?, ?)";
+                        conn.query(insertHistorySql, [h_wallet, uid, lid, h_number], (err) => {
+                            if (err) {
+                                return res.status(400).json(err);
+                            }
+                        });
+                    } else {
+                        return res.status(400).json({ message: `Lottery number not found for lid ${lid}` });
+                    }
+                });
+            });
+
+
+
+            const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
+            conn.query(deleteSql, [uid], (err) => {
+                if (err) {
+                    return res.status(400).json(err);
+                }
+
+                res.json({
+                    message: "Purchase successful, cart cleared, and wallet updated",
+                    affectedRows: result.affectedRows
                 });
             });
         });
@@ -312,11 +327,28 @@ router.put("/add_prize/:lid/:prize/:uid", (req, res) => {
             return res.status(400).json({ error: err.message });
         }
         
-        const InsertWalletSql = "INSERT INTO MB_history (h_wallet, h_uid) VALUES (?, ?)";
-        conn.query(InsertWalletSql, [Prize, uid], (err) => {
+        const InsertWalletSql = "SELECT Numbers FROM MB_lottery WHERE lid = ?";
+conn.query(InsertWalletSql, [lid], (err, results) => {
+    if (err) {
+        console.error('Error retrieving number:', err);
+        return res.status(400).json({ error: err.message });
+    }
+
+    // ตรวจสอบว่ามีผลลัพธ์จากการค้นหาหรือไม่
+    if (results.length > 0) {
+        const h_number = results[0].Numbers;
+
+        // ทำการ INSERT ข้อมูลเข้า MB_history รวมถึง h_number
+        const insertHistorySql = "INSERT INTO MB_history (h_wallet, h_uid, h_lid, h_number) VALUES (?, ?, ?, ?)";
+        conn.query(insertHistorySql, [Prize, uid, lid, h_number], (err) => {
             if (err) {
                 console.error('Error inserting into history:', err);
                 return res.status(400).json({ error: err.message });
+            }
+
+                });
+            } else {
+                return res.status(400).json({ message: `Lottery number not found for lid ${lid}` });
             }
                 
                 // ลบข้อมูลใน MB_lottery
