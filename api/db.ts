@@ -167,17 +167,26 @@ router.post('/users/login', (req, res) => {
 
     
 router.post('/random', async (req, res) => {
-    const lottery_numbers = req.body.numbers;
-  
-    console.log('Received numbers:', lottery_numbers); // เพิ่มตรงนี้
-  
-    if (!Array.isArray(lottery_numbers) || !lottery_numbers.every(num => typeof num === 'string')) {
-      return res.status(400).send('Invalid input: numbers should be an array of strings');
+    const lottery_numbers: string[] = req.body.numbers;
+
+    console.log('Received numbers:', lottery_numbers);
+
+    // กรองให้เหลือเฉพาะตัวเลขที่มีความยาว 6 หลัก
+    const filtered_numbers = lottery_numbers.filter((num: string) => {
+        const isSixDigits = num.length === 6;
+        console.log(`Filtering number: ${num}, isSixDigits: ${isSixDigits}`);
+        return isSixDigits;
+    });
+
+    console.log('Filtered numbers:', filtered_numbers);
+
+    if (!Array.isArray(filtered_numbers) || !filtered_numbers.every(num => typeof num === 'string')) {
+      return res.status(400).send('Invalid input: numbers should be an array of 6-digit strings');
     }
-  
+
     const sql = 'INSERT INTO MB_lottery (Numbers) VALUES ?';
-    const values = lottery_numbers.map(num => [num]);
-  
+    const values = filtered_numbers.map(num => [num]);
+
     try {
       await conn.query(sql, [values]);
       res.status(200).send('Insert success');
@@ -185,7 +194,10 @@ router.post('/random', async (req, res) => {
       console.error('Insert failed:', error);
       res.status(500).send('Insert failed');
     }
-  });
+});
+
+
+
   
 
   router.get("/get_WinLottery", (req, res)=>{
@@ -369,6 +381,105 @@ conn.query(InsertWalletSql, [lid], (err, results) => {
     });
 
 
+    router.put("/user/change_name/:uid", (req, res) => {
+        const uid = req.params.uid;
+        const new_name = req.body; // new_name จะเป็น object ที่มี key คือ Username
+        
+        console.log('Received INFO UID:', uid);
+        console.log('Received INFO NEW NAME:', new_name);
+        
+        // อัปเดต Username ใน MB_user
+        const updateNameSql = "UPDATE MB_user SET Username = ? WHERE uid = ?";
+        conn.query(updateNameSql, [new_name.Username, uid], (err) => {
+            if (err) {
+                console.error('Error updating username:', err);
+                return res.status(400).json({ error: err.message });
+            }
+            res.json({
+                message: "Change name successful",
+            });
+        });
+    });
+
+
+    router.put("/user/top_up/:uid", (req, res) => {
+        const uid = req.params.uid;
+        const TopUp_wallet = req.body; 
+        
+        console.log('Received INFO UID:', uid);
+        console.log('Received INFO Top UP wallet:', TopUp_wallet);
+        
+        // อัปเดต Username ใน MB_user
+        const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet + ? WHERE uid = ?";
+        conn.query(updateWalletSql, [TopUp_wallet.Wallet, uid], (err) => {
+            if (err) {
+                console.error('Error updating username:', err);
+                return res.status(400).json({ error: err.message });
+            }
+            res.json({
+                message: "Top up successful",
+            });
+        });
+    });
+
+
+    router.put("/user/change_image/:uid", (req, res) => {
+        const uid = req.params.uid;
+        const url_image = req.body; 
+        
+        console.log('Received INFO UID:', uid);
+        console.log('Received INFO URL_image:', url_image);
+        
+        // อัปเดต Username ใน MB_user
+        const updateWalletSql = "UPDATE MB_user SET image =  ? WHERE uid = ?";
+        conn.query(updateWalletSql, [url_image.url_image, uid], (err) => {
+            if (err) {
+                console.error('Error updating username:', err);
+                return res.status(400).json({ error: err.message });
+            }
+            res.json({
+                message: "Image change successful",
+            });
+        });
+    });
+
+
+    router.put("/lotterys/randomPrize", (req, res) => {
+        const prizes = [1, 2, 3, 4, 5]; // ค่าที่เป็นไปได้สำหรับ Status_prize
+        const shuffledPrizes = prizes.sort(() => 0.5 - Math.random()); // สุ่มสลับค่า
+    
+        const updateWalletSql = `
+            UPDATE MB_lottery
+            JOIN (
+                SELECT lid, ROW_NUMBER() OVER (ORDER BY RAND()) AS row_num
+                FROM MB_lottery
+                ORDER BY RAND()
+                LIMIT 5
+            ) AS selected
+            ON MB_lottery.lid = selected.lid
+            SET MB_lottery.Status_prize = CASE
+                WHEN selected.row_num = 1 THEN ${shuffledPrizes[0]}
+                WHEN selected.row_num = 2 THEN ${shuffledPrizes[1]}
+                WHEN selected.row_num = 3 THEN ${shuffledPrizes[2]}
+                WHEN selected.row_num = 4 THEN ${shuffledPrizes[3]}
+                WHEN selected.row_num = 5 THEN ${shuffledPrizes[4]}
+            END
+        `;
+    
+        conn.query(updateWalletSql, [], (err) => {
+            if (err) {
+                console.error('Error updating Status_prize:', err);
+                return res.status(400).json({ error: err.message });
+            }
+            res.json({
+                message: "Random prize update successful",
+            });
+        });
+    });
+    
+    
+    
+    
 
 
 router.delete("/remove_cart/:lid", (req, res) => {
