@@ -445,38 +445,134 @@ conn.query(InsertWalletSql, [lid], (err, results) => {
 
 
     router.put("/lotterys/randomPrize", (req, res) => {
-        const prizes = [1, 2, 3, 4, 5]; // ค่าที่เป็นไปได้สำหรับ Status_prize
-        const shuffledPrizes = prizes.sort(() => 0.5 - Math.random()); // สุ่มสลับค่า
+        // สร้างอาร์เรย์ของค่ารางวัลที่ไม่ซ้ำกัน
+        const prizes = [1, 2, 3, 4, 5];
     
-        const updateWalletSql = `
-            UPDATE MB_lottery
-            JOIN (
-                SELECT lid, ROW_NUMBER() OVER (ORDER BY RAND()) AS row_num
-                FROM MB_lottery
-                ORDER BY RAND()
-                LIMIT 5
-            ) AS selected
-            ON MB_lottery.lid = selected.lid
-            SET MB_lottery.Status_prize = CASE
-                WHEN selected.row_num = 1 THEN ${shuffledPrizes[0]}
-                WHEN selected.row_num = 2 THEN ${shuffledPrizes[1]}
-                WHEN selected.row_num = 3 THEN ${shuffledPrizes[2]}
-                WHEN selected.row_num = 4 THEN ${shuffledPrizes[3]}
-                WHEN selected.row_num = 5 THEN ${shuffledPrizes[4]}
-            END
+        // สุ่มเรียงลำดับอาร์เรย์ของค่ารางวัล
+        prizes.sort(() => Math.random() - 0.5);
+    
+        // ตรวจสอบว่ามี Status_prize ที่มากกว่า 0 อยู่ในฐานข้อมูลหรือไม่
+        const checkExistingPrizesSql = `
+            SELECT COUNT(*) AS count
+            FROM MB_lottery
+            WHERE Status_prize > 0
         `;
-    
-        conn.query(updateWalletSql, [], (err) => {
+        
+        conn.query(checkExistingPrizesSql, (err, results) => {
             if (err) {
-                console.error('Error updating Status_prize:', err);
+                console.error('Error checking existing prizes:', err);
                 return res.status(400).json({ error: err.message });
             }
-            res.json({
-                message: "Random prize update successful",
+    
+            // ถ้ามี Status_prize ที่มากกว่า 0 อยู่แล้ว
+            if (results[0].count > 0) {
+                return res.status(400).json({ error: "Some prizes already have a value greater than 0" });
+            }
+    
+            // ถ้าไม่มี Status_prize ที่มากกว่า 0 ให้ทำการอัพเดต
+            const updateWalletSql = `
+                UPDATE MB_lottery
+                JOIN (
+                    SELECT lid, ROW_NUMBER() OVER (ORDER BY RAND()) AS rn
+                    FROM MB_lottery
+                    LIMIT 5
+                ) AS selected
+                ON MB_lottery.lid = selected.lid
+                SET MB_lottery.Status_prize = CASE selected.rn
+                    WHEN 1 THEN ?
+                    WHEN 2 THEN ?
+                    WHEN 3 THEN ?
+                    WHEN 4 THEN ?
+                    WHEN 5 THEN ?
+                END
+            `;
+    
+            // ส่งค่าในอาร์เรย์ prizes ไปยังคำสั่ง SQL
+            conn.query(updateWalletSql, prizes, (err) => {
+                if (err) {
+                    console.error('Error updating Status_prize:', err);
+                    return res.status(400).json({ error: err.message });
+                }
+                res.json({
+                    message: "Random prize update successful with unique prizes",
+                });
             });
         });
     });
     
+
+
+    router.put("/lotterys/randomPrize_sold", (req, res) => {
+        const checkExistingPrizesSql = `
+            SELECT COUNT(*) AS count
+            FROM MB_lottery
+            WHERE Status_prize > 0
+        `;
+    
+        conn.query(checkExistingPrizesSql, (err, results) => {
+            if (err) {
+                console.error('Error checking existing prizes:', err);
+                return res.status(400).json({ error: err.message });
+            }
+    
+            // ถ้ามี Status_prize ที่มากกว่า 0 อยู่แล้ว
+            if (results[0].count > 0) {
+                return res.status(400).json({ error: "Some prizes already have a value greater than 0" });
+            }
+    
+            const countRowsSql = `
+                SELECT COUNT(*) AS count 
+                FROM MB_lottery 
+                WHERE Status_buy = 1
+            `;
+        
+            // นับจำนวนแถวที่มี Status_buy = 1
+            conn.query(countRowsSql, (err, result) => {
+                if (err) {
+                    console.error('Error counting rows:', err);
+                    return res.status(400).json({ error: err.message });
+                }
+        
+                const rowCount = result[0].count;
+        
+                if (rowCount === 0) {
+                    return res.status(400).json({ error: "No rows with Status_buy = 1 found" });
+                }
+        
+                // ถ้าจำนวนแถวน้อยกว่า 5 จะสุ่มตามจำนวนแถวที่มี
+                const limit = Math.min(rowCount, 5);
+                const prizes = Array.from({ length: limit }, (_, i) => i + 1);
+                prizes.sort(() => Math.random() - 0.5);
+        
+                const updateWalletSql = `
+                    UPDATE MB_lottery
+                    JOIN (
+                        SELECT lid, ROW_NUMBER() OVER (ORDER BY RAND()) AS rn
+                        FROM MB_lottery
+                        WHERE Status_buy = 1
+                        LIMIT ?
+                    ) AS selected
+                    ON MB_lottery.lid = selected.lid
+                    SET MB_lottery.Status_prize = CASE selected.rn
+                        ${prizes.map((prize, index) => `WHEN ${index + 1} THEN ${prize}`).join(' ')}
+                        ELSE MB_lottery.Status_prize
+                    END
+                    WHERE MB_lottery.Status_buy = 1
+                `;
+        
+                // ส่งค่า limit ไปยังคำสั่ง SQL เพื่อกำหนด LIMIT
+                conn.query(updateWalletSql, [limit], (err) => {
+                    if (err) {
+                        console.error('Error updating Status_prize:', err);
+                        return res.status(400).json({ error: err.message });
+                    }
+                    res.json({
+                        message: `Random prize update successful with unique prizes up to ${limit}`,
+                    });
+                });
+            });
+        });
+    });
     
     
     
