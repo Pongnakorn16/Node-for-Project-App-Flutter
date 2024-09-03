@@ -597,6 +597,63 @@ router.delete("/remove_cart/:lid", (req, res) => {
 });
 
 
+router.delete('/reset', (req, res) => {
+    const deleteLotterySql = `DELETE FROM MB_lottery`;
+    const deleteUserSql = `DELETE FROM MB_user WHERE uid != 1`;
+    const deleteHistorySql = `DELETE FROM MB_history`;
+
+    conn.query(deleteLotterySql, (err) => {
+        if (err) {
+            console.error('Error deleting from MB_lottery:', err);
+            return res.status(400).json({ error: err.message });
+        }
+
+        conn.query(deleteUserSql, (err) => {
+            if (err) {
+                console.error('Error deleting from MB_user:', err);
+                return res.status(400).json({ error: err.message });
+            }
+
+            conn.query(deleteHistorySql, (err) => {
+                if (err) {
+                    console.error('Error deleting from MB_history:', err);
+                    return res.status(400).json({ error: err.message });
+                }
+
+                res.json({ message: 'Reset successful: All rows deleted except uid = 1' });
+            });
+        });
+    });
+});
+
+
+
+router.post('/checkResetCode', (req, res) => {
+    const { password } = req.body;
+
+    const checkPasswordSql = `
+        SELECT COUNT(*) AS count 
+        FROM MB_user 
+        WHERE uid = 1 AND Password = ?
+    `;
+
+    conn.query(checkPasswordSql, [password], (err, results) => {
+        if (err) {
+            console.error('Error checking password:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        if (results[0].count > 0) {
+            res.status(200).json({ message: 'Password correct' });
+        } else {
+            res.status(400).json({ error: 'Invalid password' });
+        }
+    });
+});
+
+
+
+
 
 
 // router.get("/:email/:password",(req, res)=>{
