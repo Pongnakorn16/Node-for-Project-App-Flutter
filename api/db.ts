@@ -226,6 +226,19 @@ router.post('/random', async (req, res) => {
     });
 });
 
+router.get("/get_Lottery", (req, res)=>{
+
+    const sql = "select * from MB_lottery";
+    conn.query(sql, (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
 
 router.get("/get_UserLottery/:uid", (req, res)=>{
     const uid = req.params.uid;
