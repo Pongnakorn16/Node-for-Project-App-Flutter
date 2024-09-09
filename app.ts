@@ -19,7 +19,6 @@ app.use(bodyParser.json());
 app.use("/", index);
 app.use("/db", db);
 app.use("/upload", upload);
-app.use("/uploads",express.static("uploads"));
 
 //application จะมีลำดับการทำงานยังไงบ้าง // req = Request  res = Response     
 // app.use("/",(req, res)=>{     
