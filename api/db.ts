@@ -530,7 +530,7 @@ conn.query(InsertWalletSql, [lid], (err, results) => {
     
             // ถ้ามี Status_prize ที่มากกว่า 0 อยู่แล้ว
             if (results[0].count > 0) {
-                return res.status(400).json({ error: "Some prizes already have a value greater than 0" });
+                return res.status(400).json({ error: "already sold prize" });
             }
     
             const countRowsSql = `
@@ -549,7 +549,7 @@ conn.query(InsertWalletSql, [lid], (err, results) => {
                 const rowCount = result[0].count;
         
                 if (rowCount === 0) {
-                    return res.status(400).json({ error: "No rows with Status_buy = 1 found" });
+                    return res.status(400).json({ error: "No sold lottery" });
                 }
         
                 // ถ้าจำนวนแถวน้อยกว่า 5 จะสุ่มตามจำนวนแถวที่มี
