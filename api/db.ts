@@ -80,28 +80,42 @@ router.get('/get_cart/:uid', (req, res) => {
 
 
 
-router.post('/register/user', (req, res) => {
-    const Userinfo : MB_user = req.body;
+  router.post('/register/user', (req, res) => {
+    const Userinfo = req.body;
 
-    console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
-
-    let sql = "INSERT INTO MB_user (Email, Username, Password, Wallet, image) VALUES (?, ?, ?, ?, ?)";
-    sql = mysql.format(sql, [
-        Userinfo.Email,
-        Userinfo.Username,
-        Userinfo.Password,
-        Userinfo.Wallet,
-        Userinfo.image
-    ]);
-
-    conn.query(sql, (err, result) => {
+    // ตรวจสอบ Email ในฐานข้อมูลก่อน
+    let checkEmailSql = "SELECT * FROM MB_user WHERE Email = ?";
+    conn.query(checkEmailSql, [Userinfo.Email], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Database error' });
         }
-        res.status(200).json({ affected_rows: result.affectedRows });
+
+        // ถ้ามี Email นี้อยู่ในระบบแล้ว
+        if (result.length > 0) {
+            return res.status(400).json({ error: 'Email นี้ทำได้เป็นสมาชิกแล้ว' });
+        }
+
+        // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
+        let sql = "INSERT INTO MB_user (Email, Username, Password, Wallet, image) VALUES (?, ?, ?, ?, ?)";
+        sql = mysql.format(sql, [
+            Userinfo.Email,
+            Userinfo.Username,
+            Userinfo.Password,
+            Userinfo.Wallet,
+            Userinfo.image
+        ]);
+
+        conn.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            res.status(200).json({ affected_rows: result.affectedRows });
+        });
     });
 });
+
 
 
 router.post('/add_toCart', (req, res) => {
@@ -345,8 +359,8 @@ router.put("/add_prize/:lid/:prize/:uid", (req, res) => {
     console.log('Received INFO:', uid);
 
     // อัปเดต Wallet ใน MB_user
-    const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet + ?";
-    conn.query(updateWalletSql, [Prize], (err) => {
+    const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet + ? where uid = ?";
+    conn.query(updateWalletSql, [Prize,uid], (err) => {
         if (err) {
             console.error('Error updating wallet:', err);
             return res.status(400).json({ error: err.message });
