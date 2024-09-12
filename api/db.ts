@@ -625,33 +625,42 @@ router.delete("/remove_cart/:lid", (req, res) => {
 
 
 router.delete('/reset', (req, res) => {
+    const deleteCartSql = `DELETE FROM MB_cart`;  // เพิ่มการลบ MB_cart
     const deleteLotterySql = `DELETE FROM MB_lottery`;
     const deleteUserSql = `DELETE FROM MB_user WHERE uid != 1`;
     const deleteHistorySql = `DELETE FROM MB_history`;
 
-    conn.query(deleteLotterySql, (err) => {
+    conn.query(deleteCartSql, (err) => {
         if (err) {
-            console.error('Error deleting from MB_lottery:', err);
+            console.error('Error deleting from MB_cart:', err);
             return res.status(400).json({ error: err.message });
         }
 
-        conn.query(deleteUserSql, (err) => {
+        conn.query(deleteLotterySql, (err) => {
             if (err) {
-                console.error('Error deleting from MB_user:', err);
+                console.error('Error deleting from MB_lottery:', err);
                 return res.status(400).json({ error: err.message });
             }
 
-            conn.query(deleteHistorySql, (err) => {
+            conn.query(deleteUserSql, (err) => {
                 if (err) {
-                    console.error('Error deleting from MB_history:', err);
+                    console.error('Error deleting from MB_user:', err);
                     return res.status(400).json({ error: err.message });
                 }
 
-                res.json({ message: 'Reset successful: All rows deleted except uid = 1' });
+                conn.query(deleteHistorySql, (err) => {
+                    if (err) {
+                        console.error('Error deleting from MB_history:', err);
+                        return res.status(400).json({ error: err.message });
+                    }
+
+                    res.json({ message: 'Reset successful: All rows deleted except uid = 1' });
+                });
             });
         });
     });
 });
+
 
 
 
