@@ -59,7 +59,7 @@ router.get('/get_cart/:uid', (req, res) => {
       return res.status(400).json({ error: 'Missing UID' });
     }
   
-    // ใช้ค่า uid ในการดึงข้อมูลจากฐานข้อมูล
+    // ใช้ค่า uidในการดึงข้อมูลจากฐานข้อมูล
     let sql = `
         SELECT c.*, l.* 
         FROM MB_cart c
