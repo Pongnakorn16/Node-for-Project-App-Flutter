@@ -84,8 +84,8 @@ router.get('/get_cart/:uid', (req, res) => {
     const Userinfo = req.body;
 
     // ตรวจสอบ Email ในฐานข้อมูลก่อน
-    let checkEmailSql = "SELECT * FROM MB_user WHERE Email = ?";
-    conn.query(checkEmailSql, [Userinfo.Email], (err, result) => {
+    let checkPhoneSql = "SELECT * FROM DV_user WHERE phone = ?";
+    conn.query(checkPhoneSql, [Userinfo.Phone], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Database error' });
@@ -97,13 +97,15 @@ router.get('/get_cart/:uid', (req, res) => {
         }
 
         // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
-        let sql = "INSERT INTO MB_user (Email, Username, Password, Wallet, image) VALUES (?, ?, ?, ?, ?)";
+        let sql = "INSERT INTO DV_user (phone, password, name, user_image, address, user_type, license_plate) VALUES (?, ?, ?, ?, ?, ?, ?)";
         sql = mysql.format(sql, [
-            Userinfo.Email,
-            Userinfo.Username,
+            Userinfo.Phone,
             Userinfo.Password,
-            Userinfo.Wallet,
-            Userinfo.image
+            Userinfo.Name,
+            Userinfo.User_image,
+            Userinfo.Address,
+            Userinfo.User_type,
+            Userinfo.License_plate,
         ]);
 
         conn.query(sql, (err, result) => {
