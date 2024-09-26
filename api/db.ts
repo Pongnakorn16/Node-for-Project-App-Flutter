@@ -1,7 +1,7 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { DV_user, MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 import mysql from 'mysql';
 import { log } from "console";
@@ -93,7 +93,7 @@ router.get('/get_cart/:uid', (req, res) => {
 
         // ถ้ามี Email นี้อยู่ในระบบแล้ว
         if (result.length > 0) {
-            return res.status(400).json({ error: 'Email นี้ทำได้เป็นสมาชิกแล้ว' });
+            return res.status(400).json({ error: 'Phone นี้ทำได้เป็นสมาชิกแล้ว' });
         }
 
         // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
@@ -166,13 +166,13 @@ router.post('/add_toCart', (req, res) => {
 
 
 router.post('/users/login', (req, res) => {
-    const Userinfo : MB_user = req.body;
+    const Userinfo : DV_user = req.body;
 
     console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
 
-    let sql = "Select * from MB_user Where Email = ? and Password = ?";
+    let sql = "Select * from DV_user Where phone = ? and password = ?";
 
-    conn.query(sql, [Userinfo.Email,Userinfo.Password],(err, result) => {
+    conn.query(sql, [Userinfo.Phone,Userinfo.Password],(err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Database error' });

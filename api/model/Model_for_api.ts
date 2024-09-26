@@ -57,9 +57,20 @@ export interface UpdateScore {
     image : string;
  }
 
+
  export interface MB_cart {
     c_lid : number;
     c_uid : number;
  }
 
+ export interface DV_user {
+    Phone : string;
+    Name : string;
+    Password : string;
+    User_image : string;
+    Address : string;
+    Coordinates : string;
+    User_type : string;
+    License_plate : string;
+ }
 
