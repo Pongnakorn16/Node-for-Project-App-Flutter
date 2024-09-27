@@ -97,13 +97,14 @@ router.get('/get_cart/:uid', (req, res) => {
         }
 
         // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
-        let sql = "INSERT INTO DV_user (phone, password, name, user_image, address, user_type, license_plate) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        let sql = "INSERT INTO DV_user (phone, password, name, user_image, address, coordinates, user_type, license_plate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         sql = mysql.format(sql, [
             Userinfo.Phone,
             Userinfo.Password,
             Userinfo.Name,
             Userinfo.User_image,
             Userinfo.Address,
+            Userinfo.Coordinate,
             Userinfo.User_type,
             Userinfo.License_plate,
         ]);
