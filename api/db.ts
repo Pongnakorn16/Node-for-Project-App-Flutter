@@ -230,10 +230,11 @@ router.post('/random', async (req, res) => {
     });
 });
   
-  router.get("/get_allLottery", (req, res)=>{
+  router.get("/get_userSearch/:uid", (req, res)=>{
+    const uid = req.params.uid;
 
-    const sql = "select * from MB_lottery where Status_buy = 0";
-    conn.query(sql, (err, result)=>{
+    const sql = "select * from DV_user where uid != ?";
+    conn.query(sql,[uid], (err, result)=>{
         if(err){
             res.status(400).json(err);
         }else{
