@@ -74,3 +74,12 @@ export interface UpdateScore {
     License_plate : string;
  }
 
+ export interface DV_order {
+    p_name : string;
+    p_detail : string;
+    se_uid : number;
+    re_uid : number;
+    ri_uid : number;
+    dv_status : number;
+ }
+

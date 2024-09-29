@@ -1,7 +1,7 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { DV_user, MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { DV_order, DV_user, MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 import mysql from 'mysql';
 import { log } from "console";
@@ -81,7 +81,7 @@ router.get('/get_cart/:uid', (req, res) => {
 
 
   router.post('/register/user', (req, res) => {
-    const Userinfo = req.body;
+    const Userinfo : DV_user = req.body;
 
     // ตรวจสอบ Email ในฐานข้อมูลก่อน
     let checkPhoneSql = "SELECT * FROM DV_user WHERE phone = ?";
@@ -104,7 +104,7 @@ router.get('/get_cart/:uid', (req, res) => {
             Userinfo.Name,
             Userinfo.User_image,
             Userinfo.Address,
-            Userinfo.Coordinate,
+            Userinfo.Coordinates,
             Userinfo.User_type,
             Userinfo.License_plate,
         ]);
@@ -118,6 +118,30 @@ router.get('/get_cart/:uid', (req, res) => {
         });
     });
 });
+
+
+router.post('/add_order', (req, res) => {
+    const Orderinfo : DV_order = req.body;
+
+        // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
+        let sql = "INSERT INTO DV_order (p_name, p_detail, se_uid, re_uid, ri_uid, dv_status) VALUES (?, ?, ?, ?, ?, ?)";
+        sql = mysql.format(sql, [
+            Orderinfo.p_name,
+            Orderinfo.p_detail,
+            Orderinfo.se_uid,
+            Orderinfo.re_uid,
+            Orderinfo.ri_uid,
+            Orderinfo.dv_status,
+        ]);
+
+        conn.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            res.status(200).json({ affected_rows: result.affectedRows });
+        });
+    });
 
 
 
@@ -213,7 +237,63 @@ router.post('/random', async (req, res) => {
     }
 });
 
+router.get("/get_allOrder", (req, res)=>{
 
+    const sql = "select * from DV_order";
+    conn.query(sql, (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+router.get("/get_Send_Order/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_order where se_uid = ?";
+    conn.query(sql, [uid],(err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
+router.get("/get_Send/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_user where uid = ?";
+    conn.query(sql, [uid],(err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
+
+router.get("/get_Receive/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_user where uid = ?";
+    conn.query(sql, [uid],(err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
 
   
 
@@ -233,7 +313,7 @@ router.post('/random', async (req, res) => {
   router.get("/get_userSearch/:uid", (req, res)=>{
     const uid = req.params.uid;
 
-    const sql = "select * from DV_user where uid != ?";
+    const sql = "select * from DV_user where uid != ? and user_type = 'user'";
     conn.query(sql,[uid], (err, result)=>{
         if(err){
             res.status(400).json(err);
