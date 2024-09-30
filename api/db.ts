@@ -104,7 +104,7 @@ router.get('/get_cart/:uid', (req, res) => {
             Userinfo.Name,
             Userinfo.User_image,
             Userinfo.Address,
-            Userinfo.Coordinates,
+            Userinfo.Coordinate,
             Userinfo.User_type,
             Userinfo.License_plate,
         ]);
@@ -250,6 +250,21 @@ router.get("/get_allOrder", (req, res)=>{
     });
 });
 
+
+router.get("/get_NewOrder", (req, res) => {
+    // คำสั่ง SQL เพื่อเลือก oid ล่าสุดจาก DV_user
+    const sql = "SELECT oid FROM DV_order ORDER BY oid DESC LIMIT 1";
+    
+    conn.query(sql, (err, result) => {
+        if (err) {
+            res.status(400).json(err);
+        } else {
+            res.json(result);
+        }
+    });
+});
+
+
 router.get("/get_Send_Order/:uid", (req, res)=>{
     const uid = req.params.uid;
 
@@ -294,6 +309,7 @@ router.get("/get_Receive/:uid", (req, res)=>{
         }
     });
 });
+
 
   
 

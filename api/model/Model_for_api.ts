@@ -69,7 +69,7 @@ export interface UpdateScore {
     Password : string;
     User_image : string;
     Address : string;
-    Coordinates : string;
+    Coordinate : string;
     User_type : string;
     License_plate : string;
  }
