@@ -340,10 +340,11 @@ router.get("/get_Receive/:uid", (req, res)=>{
     });
 });
 
-router.get("/get_Lottery", (req, res)=>{
+router.get("/get_OneOrder/:oid", (req, res)=>{
+    const oid = req.params.oid;
 
-    const sql = "select * from MB_lottery";
-    conn.query(sql, (err, result)=>{
+    const sql = "select * from DV_order where oid = ?";
+    conn.query(sql,[oid], (err, result)=>{
         if(err){
             res.status(400).json(err);
         }else{
@@ -352,7 +353,6 @@ router.get("/get_Lottery", (req, res)=>{
         }
     });
 });
-
 
 router.get("/get_UserLottery/:uid", (req, res)=>{
     const uid = req.params.uid;
