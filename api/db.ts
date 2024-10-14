@@ -50,32 +50,20 @@ router.get("/get_cart", (req, res)=>{
 
 
 
-router.get('/get_cart/:uid', (req, res) => {
-    const uid = req.params.uid; // ดึงค่า uid จาก path parameter
-  
-    console.log('Received UID:', uid); // ตรวจสอบค่า uid ที่ได้รับ
-  
-    if (!uid) {
-      return res.status(400).json({ error: 'Missing UID' });
-    }
-  
-    // ใช้ค่า uidในการดึงข้อมูลจากฐานข้อมูล
-    let sql = `
-        SELECT c.*, l.* 
-        FROM MB_cart c
-        JOIN MB_lottery l ON c.c_lid = l.lid
-        WHERE c.c_uid = ?
-    `;
-    sql = mysql.format(sql, [uid]);
-  
-    conn.query(sql, (err, result) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-      res.status(200).json(result);
+
+router.get("/get_Profile/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_user where uid = ?";
+    conn.query(sql, [uid],(err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
     });
-  });
+});
   
 
 
@@ -145,50 +133,6 @@ router.post('/add_order', (req, res) => {
 
 
 
-router.post('/add_toCart', (req, res) => {
-    const cartInfo : MB_cart =  req.body; // อาจต้องตรวจสอบชนิดของข้อมูลเพิ่มเติม
-
-    console.log('Received Info:', req.body); // ตรวจสอบข้อมูลที่ได้รับ
-
-    // ตรวจสอบว่ามี lid นี้อยู่ในฐานข้อมูลหรือไม่
-    let checkSql = "SELECT * FROM MB_cart WHERE c_lid = ? AND c_uid = ?";
-    checkSql = mysql.format(checkSql, [
-        cartInfo.c_lid,
-        cartInfo.c_uid
-    ]);
-
-    conn.query(checkSql, (checkErr, checkResult) => {
-        if (checkErr) {
-            console.error(checkErr);
-            return res.status(500).json({ error: 'Database error' });
-        }
-
-        if (checkResult.length > 0) {
-            // หากพบข้อมูลที่มีอยู่แล้วในฐานข้อมูล
-            return res.status(409).json({ message: 'The item already exists in the cart' });
-        } else {
-            console.log()
-            // หากไม่มีข้อมูลในฐานข้อมูล ทำการ INSERT ข้อมูลใหม่
-            let insertSql = "INSERT INTO MB_cart (c_lid, c_uid) VALUES (?, ?)";
-            insertSql = mysql.format(insertSql, [
-                cartInfo.c_lid,
-                cartInfo.c_uid
-            ]);
-
-            conn.query(insertSql, (insertErr, insertResult) => {
-                if (insertErr) {
-                    console.error(insertErr);
-                    return res.status(500).json({ error: 'Database error' });
-                }
-                res.status(200).json({ affected_rows: insertResult.affectedRows });
-            });
-        }
-    });
-});
-
-
-
-
 
 router.post('/users/login', (req, res) => {
     const Userinfo : DV_user = req.body;
@@ -206,36 +150,6 @@ router.post('/users/login', (req, res) => {
     });
 });
 
-    
-router.post('/random', async (req, res) => {
-    const lottery_numbers: string[] = req.body.numbers;
-
-    console.log('Received numbers:', lottery_numbers);
-
-    // กรองให้เหลือเฉพาะตัวเลขที่มีความยาว 6 หลัก
-    const filtered_numbers = lottery_numbers.filter((num: string) => {
-        const isSixDigits = num.length === 6;
-        console.log(`Filtering number: ${num}, isSixDigits: ${isSixDigits}`);
-        return isSixDigits;
-    });
-
-    console.log('Filtered numbers:', filtered_numbers);
-
-    if (!Array.isArray(filtered_numbers) || !filtered_numbers.every(num => typeof num === 'string')) {
-      return res.status(400).send('Invalid input: numbers should be an array of 6-digit strings');
-    }
-
-    const sql = 'INSERT INTO MB_lottery (Numbers) VALUES ?';
-    const values = filtered_numbers.map(num => [num]);
-
-    try {
-      await conn.query(sql, [values]);
-      res.status(200).send('Insert success');
-    } catch (error) {
-      console.error('Insert failed:', error);
-      res.status(500).send('Insert failed');
-    }
-});
 
 router.get("/get_allOrder", (req, res)=>{
 
@@ -280,6 +194,21 @@ router.get("/get_Send_Order/:uid", (req, res)=>{
 });
 
 
+router.get("/get_Receive_Order/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_order where re_uid = ?";
+    conn.query(sql, [uid],(err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
 router.get("/get_Send/:uid", (req, res)=>{
     const uid = req.params.uid;
 
@@ -311,20 +240,7 @@ router.get("/get_Receive/:uid", (req, res)=>{
 });
 
 
-  
 
-  router.get("/get_WinLottery", (req, res)=>{
-
-    const sql = "select * from MB_lottery where Status_prize > 0 ORDER BY Status_prize ASC";
-    conn.query(sql, (err, result)=>{
-        if(err){
-            res.status(400).json(err);
-        }else{
-            
-            res.json(result);
-        }
-    });
-});
   
   router.get("/get_userSearch/:uid", (req, res)=>{
     const uid = req.params.uid;
@@ -354,99 +270,7 @@ router.get("/get_OneOrder/:oid", (req, res)=>{
     });
 });
 
-router.get("/get_UserLottery/:uid", (req, res)=>{
-    const uid = req.params.uid;
-        const sql = "SELECT * FROM MB_lottery WHERE Owner_uid = ? ORDER BY CASE WHEN Status_prize = 0 THEN 2 WHEN Status_prize BETWEEN 1 AND 5 THEN 1 END, Status_prize ASC";
-        conn.query(sql, [uid],(err, result) => {
-            if(err){
-                res.status(400).json(err);
-            }else{
-                res.json(result);
-            }
-        });
-});
 
-
-router.get("/get_history/:uid", (req, res) => {
-    const uid = req.params.uid;
-    const sql = "Select * from MB_history where h_uid = ? ORDER BY hid DESC";
-    
-    conn.query(sql, [uid], (err, result) => {
-        if (err) {
-            res.status(400).json(err);
-        } else {
-            res.json(result);
-        }
-    });
-});
-
-
-router.put("/purchase/:pay/:uid", (req, res) => {
-    const uid = req.params.uid;
-    const wallet_pay = req.params.pay;
-    const lids = req.body.lids;
-
-    console.log('Received INFO:', lids);
-
-    if (!Array.isArray(lids) || lids.length === 0) {
-        return res.status(400).json({ message: "Invalid or empty lids array" });
-    }
-
-    const updateWalletSql = "UPDATE MB_user SET Wallet = Wallet - ? WHERE uid = ?";
-    conn.query(updateWalletSql, [wallet_pay, uid], (err) => {
-        if (err) {
-            return res.status(400).json(err);
-        }
-
-        const updateSql = "UPDATE MB_lottery SET Status_buy = 1, Owner_uid = ? WHERE lid IN (?)";
-        conn.query(updateSql, [uid, lids], (err, result) => {
-            if (err) {
-                return res.status(400).json(err);
-            }
-
-            const h_wallet = Number(wallet_pay) / lids.length;
-
-            lids.forEach((lid) => {
-                // ดึงค่า Numbers จาก MB_lottery โดยใช้ lid
-                const selectNumberSql = "SELECT Numbers FROM MB_lottery WHERE lid = ?";
-                conn.query(selectNumberSql, [lid], (err, results) => {
-                    if (err) {
-                        return res.status(400).json(err);
-                    }
-
-                    // ตรวจสอบว่ามีผลลัพธ์จากการค้นหาหรือไม่
-                    if (results.length > 0) {
-                        const h_number = results[0].Numbers;
-
-                        // ทำการ INSERT ข้อมูลเข้า MB_history รวมถึง h_number
-                        const insertHistorySql = "INSERT INTO MB_history (h_wallet, h_uid, h_lid, h_number) VALUES (?, ?, ?, ?)";
-                        conn.query(insertHistorySql, [h_wallet, uid, lid, h_number], (err) => {
-                            if (err) {
-                                return res.status(400).json(err);
-                            }
-                        });
-                    } else {
-                        return res.status(400).json({ message: `Lottery number not found for lid ${lid}` });
-                    }
-                });
-            });
-
-
-
-            const deleteSql = "DELETE FROM MB_cart WHERE c_uid = ?";
-            conn.query(deleteSql, [uid], (err) => {
-                if (err) {
-                    return res.status(400).json(err);
-                }
-
-                res.json({
-                    message: "Purchase successful, cart cleared, and wallet updated",
-                    affectedRows: result.affectedRows
-                });
-            });
-        });
-    });
-});
 
 
 router.put("/add_prize/:lid/:prize/:uid", (req, res) => {
