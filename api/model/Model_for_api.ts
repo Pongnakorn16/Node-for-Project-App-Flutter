@@ -64,6 +64,7 @@ export interface UpdateScore {
  }
 
  export interface DV_user {
+    Uid : number;
     Phone : string;
     Name : string;
     Password : string;
