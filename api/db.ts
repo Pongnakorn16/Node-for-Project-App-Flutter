@@ -64,7 +64,21 @@ router.get("/get_Profile/:uid", (req, res)=>{
         }
     });
 });
-  
+
+
+router.get("/get_RiderProfile/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_user where uid = ?";
+    conn.query(sql, [uid],(err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
 
 
 
@@ -340,6 +354,25 @@ router.get("/get_OneOrder/:oid", (req, res)=>{
     });
 });
 
+
+router.put("/update_status/:oid/:sts", (req, res) => {
+    const oid = req.params.oid;
+    const sts = req.params.sts;
+    
+    console.log('Received INFO UID:', sts);
+    
+    // อัปเดต Username ใน MB_user
+    const updateWalletSql = "UPDATE DV_order SET dv_status = ? WHERE oid = ?";
+    conn.query(updateWalletSql, [sts, oid], (err) => {
+        if (err) {
+            console.error('Error updating username:', err);
+            return res.status(400).json({ error: err.message });
+        }
+        res.json({
+            message: "Top up successful",
+        });
+    });
+});
 
 
 
