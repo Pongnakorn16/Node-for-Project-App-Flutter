@@ -262,6 +262,20 @@ router.get("/get_Rider_Order", (req, res)=>{
 });
 
 
+router.get("/get_Rider_History", (req, res)=>{
+
+    const sql = "select * from DV_order where dv_status = 4";
+    conn.query(sql, (err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
 router.get("/get_Send/:uid", (req, res)=>{
     const uid = req.params.uid;
 
