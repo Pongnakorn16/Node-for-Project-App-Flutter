@@ -307,6 +307,21 @@ router.get("/get_Receive/:uid", (req, res)=>{
 });
 
 
+router.get("/get_Rider/:uid", (req, res)=>{
+    const uid = req.params.uid;
+
+    const sql = "select * from DV_user where uid = ?";
+    conn.query(sql, [uid],(err,result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
+
 router.get("/get_Order/:se_uid/:re_uid", (req, res) => {
     const se_uid = req.params.se_uid; // รับค่า se_uid
     const re_uid = req.params.re_uid; // รับค่า re_uid
@@ -369,15 +384,16 @@ router.get("/get_OneOrder/:oid", (req, res)=>{
 });
 
 
-router.put("/update_status/:oid/:sts", (req, res) => {
+router.put("/update_status/:oid/:sts/:uid", (req, res) => {
     const oid = req.params.oid;
     const sts = req.params.sts;
+    const uid = req.params.uid;
     
     console.log('Received INFO UID:', sts);
     
     // อัปเดต Username ใน MB_user
-    const updateWalletSql = "UPDATE DV_order SET dv_status = ? WHERE oid = ?";
-    conn.query(updateWalletSql, [sts, oid], (err) => {
+    const updateWalletSql = "UPDATE DV_order SET dv_status = ?, ri_uid = ? WHERE oid = ?";
+    conn.query(updateWalletSql, [sts,uid, oid], (err) => {
         if (err) {
             console.error('Error updating username:', err);
             return res.status(400).json({ error: err.message });
