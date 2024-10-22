@@ -384,6 +384,21 @@ router.get("/get_SendOrder/:se_uid", (req, res)=>{
     });
 });
 
+
+router.get("/get_ReceiveOrder/:re_uid", (req, res)=>{
+    const re_uid = req.params.re_uid;
+
+    const sql = "select * from DV_order where re_uid = ?";
+    conn.query(sql,[re_uid], (err, result)=>{
+        if(err){
+            res.status(400).json(err);
+        }else{
+            
+            res.json(result);
+        }
+    });
+});
+
 router.get("/get_OneOrder/:oid", (req, res)=>{
     const oid = req.params.oid;
 
