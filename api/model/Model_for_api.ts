@@ -75,6 +75,11 @@ export interface UpdateScore {
     License_plate : string;
  }
 
+ export interface DV_rider {
+    Address : string;
+    Coordinate : string;
+ }
+
  export interface DV_order {
     p_name : string;
     p_detail : string;
