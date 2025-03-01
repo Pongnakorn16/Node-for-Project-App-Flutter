@@ -9,7 +9,7 @@ import { log } from "console";
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 
-router.get("/user", (req, res)=>{
+router.get("/users", (req, res)=>{
 
         const sql = "select * from MB_user";
         conn.query(sql, (err, result)=>{
