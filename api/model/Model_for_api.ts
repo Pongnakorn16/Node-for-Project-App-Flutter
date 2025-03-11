@@ -89,3 +89,44 @@ export interface UpdateScore {
     dv_status : number;
  }
 
+ export interface BP_customer {
+    cus_id : number;
+    name : string;
+    email : string;
+    password : string;
+    phone : string;
+    image : string;
+    balance : number;
+    active_status : number;
+ }
+
+ export interface BP_rider {
+    rid_id : number;
+    name : string;
+    email : string;
+    password : string;
+    phone : string;
+    image : string;
+    balance : number;
+    license : string;
+    rating : number;
+    active_status : number;
+ }
+
+
+ export interface BP_restaurant {
+    res_id : number;
+    email : string;
+    password : string;
+    phone : string;
+    name : string;
+    image : string;
+    description : string;
+    coordinates : string;
+    opening_time : string;
+    closing_time : string;
+    rating : number;
+    balance : number;
+    active_status : number;
+ }
+

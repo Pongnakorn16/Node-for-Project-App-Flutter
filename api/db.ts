@@ -1,7 +1,7 @@
 import express from "express";
 import { conn, queryAsync } from "../db.connect";
 import { json } from "body-parser";
-import { DV_order, DV_rider, DV_user, MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
+import { BP_customer, BP_restaurant, BP_rider, DV_order, DV_rider, DV_user, MB_cart, MB_user, SED, UpdateImage, UpdateScore, UploadImage, UserPostRequest, Vote } from "./model/Model_for_api";
 import { UserPutRequest } from "./model/Model_for_api";
 import mysql from 'mysql';
 import { log } from "console";
@@ -9,9 +9,9 @@ import { log } from "console";
 export const router = express.Router(); // Router คือตัวจัดการเส้นทาง
 
 
-router.get("/user", (req, res)=>{
+router.get("/get/customer", (req, res)=>{
 
-        const sql = "select * from MB_user";
+        const sql = "select * from BP_customer";
         conn.query(sql, (err, result)=>{
             if(err){
                 res.status(400).json(err);
@@ -82,12 +82,27 @@ router.get("/get_RiderProfile/:uid", (req, res)=>{
 
 
 
-  router.post('/register/user', (req, res) => {
-    const Userinfo : DV_user = req.body;
+router.post('/register/customer', (req, res) => {
+    console.log("Received body:", req.body);  // ดูว่า req.body มีข้อมูลหรือไม่
+
+    const Cusinfo: BP_customer = req.body;
+    console.log("Received data:", Cusinfo.email);
+
+
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!Cusinfo.name || !Cusinfo.email || !Cusinfo.password || !Cusinfo.phone) {
+        return res.status(400).json({ error: 'All fields are required' });
+    }
 
     // ตรวจสอบ Email ในฐานข้อมูลก่อน
-    let checkPhoneSql = "SELECT * FROM DV_user WHERE phone = ?";
-    conn.query(checkPhoneSql, [Userinfo.Phone], (err, result) => {
+    let checkEmailSql = `
+  SELECT email FROM BP_restaurant WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_customer WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_rider WHERE email = ?;
+`;
+    conn.query(checkEmailSql, [Cusinfo.email,Cusinfo.email,Cusinfo.email], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ error: 'Database error' });
@@ -95,20 +110,110 @@ router.get("/get_RiderProfile/:uid", (req, res)=>{
 
         // ถ้ามี Email นี้อยู่ในระบบแล้ว
         if (result.length > 0) {
-            return res.status(400).json({ error: 'Phone นี้ทำได้เป็นสมาชิกแล้ว' });
+            return res.status(400).json({ error: 'Email นี้ทำได้เป็นสมาชิกแล้ว' });
         }
 
         // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
-        let sql = "INSERT INTO DV_user (phone, password, name, user_image, address, coordinates, user_type, license_plate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        let sql = "INSERT INTO BP_customer (name, email, password, phone) VALUES (?, ?, ?, ?)";
         sql = mysql.format(sql, [
-            Userinfo.Phone,
-            Userinfo.Password,
-            Userinfo.Name,
-            Userinfo.User_image,
-            Userinfo.Address,
-            Userinfo.Coordinate,
-            Userinfo.User_type,
-            Userinfo.License_plate,
+            Cusinfo.name,
+            Cusinfo.email,
+            Cusinfo.password,
+            Cusinfo.phone,
+        ]);
+
+        conn.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            // ส่งผลลัพธ์กลับไป
+            res.status(200).json({ 
+                message: 'Registration successful', 
+                userId: result.insertId,  // ส่ง userId ที่เพิ่งถูกสร้าง
+                affectedRows: result.affectedRows 
+            });
+        });
+    });
+});
+
+
+
+router.post('/register/rider', (req, res) => {
+    const Ridinfo : BP_rider = req.body;
+
+    // ตรวจสอบ Email ในฐานข้อมูลก่อน
+    let checkEmailSql = `
+  SELECT email FROM BP_restaurant WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_customer WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_rider WHERE email = ?;
+`;
+
+    conn.query(checkEmailSql, [Ridinfo.email,Ridinfo.email,Ridinfo.email], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        // ถ้ามี Email นี้อยู่ในระบบแล้ว
+        if (result.length > 0) {
+            return res.status(400).json({ error: 'Email นี้ทำได้เป็นสมาชิกแล้ว' });
+        }
+
+        // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
+        let sql = "INSERT INTO BP_rider (name, email, password, phone, license) VALUES (?, ?, ?, ?, ?)";
+        sql = mysql.format(sql, [
+            Ridinfo.name,
+            Ridinfo.email,
+            Ridinfo.password,
+            Ridinfo.phone,
+            Ridinfo.license,
+        ]);
+
+        conn.query(sql, (err, result) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: 'Database error' });
+            }
+            res.status(200).json({ affected_rows: result.affectedRows });
+        });
+    });
+});
+
+
+
+router.post('/register/restaurant', (req, res) => {
+    const Resinfo : BP_restaurant = req.body;
+
+    // ตรวจสอบ Email ในฐานข้อมูลก่อน
+    let checkEmailSql = `
+  SELECT email FROM BP_restaurant WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_customer WHERE email = ? 
+  UNION 
+  SELECT email FROM BP_rider WHERE email = ?;
+`;
+    conn.query(checkEmailSql, [Resinfo.email,Resinfo.email,Resinfo.email], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        // ถ้ามี Email นี้อยู่ในระบบแล้ว
+        if (result.length > 0) {
+            return res.status(400).json({ error: 'Email นี้ทำได้เป็นสมาชิกแล้ว' });
+        }
+
+        // ถ้า Email นี้ยังไม่มีในระบบ ให้ดำเนินการ INSERT ข้อมูล
+        let sql = "INSERT INTO BP_restaurant (email, password, phone, name) VALUES (?, ?, ?, ?)";
+        sql = mysql.format(sql, [
+            Resinfo.email,
+            Resinfo.password,
+            Resinfo.phone,
+            Resinfo.name,
         ]);
 
         conn.query(sql, (err, result) => {
@@ -173,21 +278,41 @@ router.post('/add_order', (req, res) => {
 
 
 
-router.post('/users/login', (req, res) => {
-    const Userinfo : DV_user = req.body;
-
-    console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
-
-    let sql = "Select * from DV_user Where phone = ? and password = ?";
-
-    conn.query(sql, [Userinfo.Phone,Userinfo.Password],(err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Database error' });
+    router.post('/users/login', async (req, res) => {
+        const Userinfo: DV_user = req.body;
+        console.log(req.body); // ตรวจสอบข้อมูลที่ได้รับ
+    
+        const tables = ["BP_customer", "BP_restaurant", "BP_rider", "BP_admin"];
+        let userData = null;
+    
+        for (const table of tables) {
+            let sql = `SELECT *, '${table}'  WHERE email = ? AND password = ?`;
+    
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    conn.query(sql, [Userinfo.Phone, Userinfo.Password], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+    
+                if (Array.isArray(result) && result.length > 0) {
+                    userData = result[0]; // พบข้อมูลใน Table ใด Table หนึ่ง
+                    break;
+                }
+            } catch (error) {
+                console.error(error);
+                return res.status(500).json({ error: 'Database error' });
+            }
         }
-        res.status(200).json(result);
+    
+        if (userData) {
+            res.status(200).json(userData);
+        } else {
+            res.status(401).json({ error: 'Invalid credentials' });
+        }
     });
-});
+    
 
 
 router.get("/get_allOrder", (req, res)=>{
