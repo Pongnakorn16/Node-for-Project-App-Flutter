@@ -65,7 +65,7 @@ export interface UpdateScore {
 
  export interface DV_user {
     Uid : number;
-    Phone : string;
+    Email : string;
     Name : string;
     Password : string;
     User_image : string;
@@ -91,42 +91,42 @@ export interface UpdateScore {
 
  export interface BP_customer {
     cus_id : number;
-    name : string;
-    email : string;
-    password : string;
-    phone : string;
-    image : string;
-    balance : number;
-    active_status : number;
+    cus_name : string;
+    cus_email : string;
+    cus_password : string;
+    cus_phone : string;
+    cus_image : string;
+    cus_balance : number;
+    cus_active_status : number;
  }
 
  export interface BP_rider {
     rid_id : number;
-    name : string;
-    email : string;
-    password : string;
-    phone : string;
-    image : string;
-    balance : number;
-    license : string;
-    rating : number;
-    active_status : number;
+    rid_name : string;
+    rid_email : string;
+    rid_password : string;
+    rid_phone : string;
+    rid_image : string;
+    rid_balance : number;
+    rid_license : string;
+    rid_rating : number;
+    rid_active_status : number;
  }
 
 
  export interface BP_restaurant {
     res_id : number;
-    email : string;
-    password : string;
-    phone : string;
-    name : string;
-    image : string;
-    description : string;
-    coordinates : string;
-    opening_time : string;
-    closing_time : string;
-    rating : number;
-    balance : number;
-    active_status : number;
+    res_email : string;
+    res_password : string;
+    res_phone : string;
+    res_name : string;
+    res_image : string;
+    res_description : string;
+    res_coordinates : string;
+    res_opening_time : string;
+    res_closing_time : string;
+    res_rating : number;
+    res_balance : number;
+    res_active_status : number;
  }
 
