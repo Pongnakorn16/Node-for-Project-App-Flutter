@@ -321,6 +321,7 @@ router.post('/add_order', (req, res) => {
     for (const table of tables) {
     const sql = `SELECT *, '${table.name}' AS source_table FROM ${table.name} WHERE ${table.emailCol} = ? AND ${table.passCol} = ?`;
     console.log("Executing SQL:", sql);
+    
 
     try {
         const result = await new Promise((resolve, reject) => {
